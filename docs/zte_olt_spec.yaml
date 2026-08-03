@@ -1,0 +1,90 @@
+version: "1.0"
+description: "Spesifikasi Command CLI ZTE OLT untuk Dashboard NOC"
+
+# Aturan Penamaan Interface (Sangat Penting untuk AI)
+interface_rules:
+  c300:
+    olt_port: "gpon-olt_{f}/{s}/{p}"      # Contoh: gpon-olt_1/1/1
+    onu_port: "gpon-onu_{f}/{s}/{p}:{id}" # Contoh: gpon-onu_1/1/1:1
+  c600:
+    olt_port: "gpon_olt-{f}/{s}/{p}"      # Contoh: gpon_olt-1/1/1
+    onu_port: "gpon_onu-{f}/{s}/{p}:{id}" # Contoh: gpon_onu-1/1/1:1
+
+# Pustaka Perintah (Variables: {olt_port}, {onu_port}, {sn}, {type}, {vlan})
+commands:
+  # -----------------------------------------
+  # 1. MONITORING & DISCOVERY (Dashboard View)
+  # -----------------------------------------
+  get_uncfg_onu:
+    desc: "Mencari ONU baru yang belum diregistrasi"
+    cmd: "show gpon onu uncfg"
+    expected_output_hint: "Tabel berisi baris dengan SN (misal ZTEGxxxx) dan status uncfg"
+  
+  get_board_status:
+    desc: "Melihat status slot/kartu pada OLT (CPU/RAM/Suhu)"
+    cmd: "show processor"
+    expected_output_hint: "Informasi CPU usage dan Memory usage"
+
+  get_onu_status:
+    desc: "Melihat status spesifik satu ONU (Online, Offline, LOS)"
+    cmd: 
+      c300: "show gpon onu state {olt_port} {id}"
+      c600: "show gpon onu detail-info {onu_port}"
+    expected_output_hint: "Cari kata kunci 'working', 'los', 'dying-gasp', atau 'offline'"
+
+  get_onu_power:
+    desc: "Mengecek Rx/Tx Optical Power ONU (Redaman)"
+    cmd: "show pon power attenuation {onu_port}"
+    expected_output_hint: "Nilai Rx dan Tx dalam satuan dBm (contoh: -23.501 dBm)"
+
+  get_onu_mac:
+    desc: "Melihat MAC Address perangkat di belakang ONU"
+    cmd: "show mac gpon onu {onu_port}"
+    expected_output_hint: "Tabel MAC Address dengan Vlan dan Port"
+
+  # -----------------------------------------
+  # 2. CONTROL & PROVISIONING (Action Buttons)
+  # -----------------------------------------
+  register_onu_bridge:
+    desc: "Registrasi ONU mode Bridge (Dial PPPoE dari Mikrotik)"
+    sequence:
+      - "conf t"
+      - "interface {olt_port}"
+      - "onu {id} type {type} sn {sn}"
+      - "exit"
+      - "interface {onu_port}"
+      - "name {sn}"
+      - "tcont 1 name T1 profile UP-1G" # C300/C600 mungkin sedikit beda di penamaan profile
+      - "gemport 1 name G1 tcont 1"
+      - "exit"
+      - "pon-onu-mng {onu_port}"
+      - "service 1 gemport 1 vlan {vlan}"
+      - "vlan port eth_0/1 mode tag vlan {vlan}"
+      - "exit"
+
+  delete_onu:
+    desc: "Menghapus/Unbind ONU dari OLT"
+    sequence:
+      - "conf t"
+      - "interface {olt_port}"
+      - "no onu {id}"
+      - "exit"
+
+  # -----------------------------------------
+  # 3. MAINTENANCE (Troubleshooting)
+  # -----------------------------------------
+  reboot_onu:
+    desc: "Restart ONU pelanggan"
+    sequence:
+      - "conf t"
+      - "pon-onu-mng {onu_port}"
+      - "reboot"
+      - "exit"
+
+  restore_onu:
+    desc: "Factory reset ONU pelanggan"
+    sequence:
+      - "conf t"
+      - "pon-onu-mng {onu_port}"
+      - "restore factory"
+      - "exit"

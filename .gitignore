@@ -1,0 +1,53 @@
+# ─── Editor & System ───────────────────────────────────────
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.DS_Store
+Thumbs.db
+
+# ─── OS/Platform specific ──────────────────────────────────
+.gemini/
+graphify-out/
+
+# ─── Local Configuration & Secrets ─────────────────────────
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.local
+backend/.env
+frontend/.env
+
+# ─── SSL Certificates ──────────────────────────────────────
+frontend/certs/
+*.pem
+*.key
+
+# ─── Dependencies ──────────────────────────────────────────
+node_modules/
+jspm_packages/
+web_modules/
+vendor/
+
+# ─── Build & Outputs ───────────────────────────────────────
+dist/
+build/
+bin/
+backend/bin/
+backend/server
+
+# ─── Temp & Logs ───────────────────────────────────────────
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+tmp/
+backend/tmp/
+
+# ─── Uploads & User Generated Data ─────────────────────────
+backend/uploads/

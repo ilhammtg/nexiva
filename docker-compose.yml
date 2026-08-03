@@ -1,0 +1,123 @@
+services:
+  # ─── Backend API ─────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: isp_backend
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./backend/uploads:/app/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - isp_network
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  # ─── Frontend Dev Server ──────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: isp_frontend
+    restart: unless-stopped
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      - VITE_BACKEND_URL=http://backend:8080
+    depends_on:
+      - backend
+    networks:
+      - isp_network
+
+  # ─── PostgreSQL ──────────────────────────────────────────
+  postgres:
+    image: postgres:15-alpine
+    container_name: isp_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: isp_registration
+      POSTGRES_USER: isp_dev
+      POSTGRES_PASSWORD: isp_dev_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U isp_dev -d isp_registration"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - isp_network
+
+  # ─── Redis ───────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: isp_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes --requirepass isp_redis_dev
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "isp_redis_dev", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - isp_network
+
+  # ─── NATS ────────────────────────────────────────────────
+  nats:
+    image: nats:2.10-alpine
+    container_name: isp_nats
+    restart: unless-stopped
+    ports:
+      - "4222:4222"
+      - "8222:8222"      # monitoring HTTP UI
+    command: ["-m", "8222", "--name", "isp-nats"]
+    networks:
+      - isp_network
+
+  # ─── Database Admin (opsional, dev only) ─────────────────
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: isp_pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@isp.dev
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - isp_network
+    profiles:
+      - dev-tools   # jalankan dengan: docker-compose --profile dev-tools up
+
+volumes:
+  postgres_data:
+  redis_data:
+  pgadmin_data:
+
+networks:
+  isp_network:
+    driver: bridge

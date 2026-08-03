@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invoice Pasang Baru - ISP JSN</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #333;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background-color: #f9f9f9;
+        }
+
+        .invoice-box {
+            max-width: 800px;
+            margin: auto;
+            padding: 30px;
+            border: 1px solid #eee;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
+            background-color: #fff;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 3px solid #0056b3;
+            padding-bottom: 20px;
+            margin-bottom: 20px;
+        }
+
+        .company-details h1 {
+            margin: 0;
+            color: #0056b3;
+            font-size: 24px;
+        }
+
+        .company-details p {
+            margin: 5px 0 0 0;
+            font-size: 12px;
+            color: #666;
+        }
+
+        .invoice-title {
+            text-align: right;
+        }
+
+        .invoice-title h2 {
+            margin: 0;
+            color: #333;
+            font-size: 22px;
+            text-transform: uppercase;
+        }
+
+        .invoice-meta {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .meta-block h3 {
+            margin: 0 0 8px 0;
+            font-size: 14px;
+            color: #0056b3;
+            text-transform: uppercase;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 3px;
+        }
+
+        .meta-block p {
+            margin: 4px 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        th {
+            background-color: #f2f2f2;
+            color: #333;
+            text-align: left;
+            padding: 10px;
+            border-bottom: 2px solid #ddd;
+        }
+
+        td {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .text-right {
+            text-align: right;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .total-section {
+            width: 40%;
+            margin-left: auto;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .total-section table {
+            margin-bottom: 0;
+        }
+
+        .total-section td {
+            padding: 6px 10px;
+        }
+
+        .grand-total {
+            font-weight: bold;
+            color: #0056b3;
+            font-size: 16px;
+            background-color: #f2f2f2;
+        }
+
+        .payment-methods {
+            background-color: #f9f9f9;
+            padding: 15px;
+            border-radius: 5px;
+            border-left: 4px solid #0056b3;
+            font-size: 13px;
+        }
+
+        .payment-methods h4 {
+            margin: 0 0 10px 0;
+            color: #333;
+        }
+
+        .payment-methods ul {
+            margin: 0;
+            padding-left: 20px;
+        }
+
+        .note {
+            margin-top: 20px;
+            font-size: 11px;
+            color: #777;
+            font-style: italic;
+        }
+
+        @media print {
+            body {
+                background-color: #fff;
+                padding: 0;
+            }
+
+            .invoice-box {
+                border: none;
+                box-shadow: none;
+                padding: 0;
+            }
+
+            .payment-methods {
+                background-color: #fff;
+                border: 1px solid #ddd;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="invoice-box">
+        <!-- Header / Kop Surat -->
+        <div class="header">
+            <div class="company-details">
+                <h1>PT Jaringan Sarana Nusantara</h1>
+                <p>Jl. Utama Raya No. 45, Jakarta Pusat | Telp: (021) 555-1234 | Email: support@jsn.net.id</p>
+            </div>
+            <div class="invoice-title">
+                <h2>Invoice</h2>
+                <p style="margin: 5px 0 0 0; font-size: 14px; color: #666;"># INV/JSN-NEW/2026/071901</p>
+            </div>
+        </div>
+
+        <!-- Informasi Invoice & Pelanggan -->
+        <div class="invoice-meta">
+            <div class="meta-block" style="width: 45%;">
+                <h3>Data Pelanggan</h3>
+                <p><strong>Nama:</strong> [Nama Pelanggan]</p>
+                <p><strong>No. Telp:</strong> [Nomor HP Pelanggan]</p>
+                <p><strong>Alamat Pasang:</strong> [Alamat Lengkap Instalasi Rumah/Kantor]</p>
+            </div>
+            <div class="meta-block" style="width: 45%;">
+                <h3>Detail Tagihan</h3>
+                <p><strong>ID Pelanggan:</strong> <em>(Aktif setelah bayar)</em></p>
+                <p><strong>Tanggal Cetak:</strong> 19 Juli 2026</p>
+                <p><strong>Jatuh Tempo:</strong> 22 Juli 2026</p>
+            </div>
+        </div>
+
+        <!-- Tabel Rincian Biaya -->
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 5%;">No</th>
+                    <th style="width: 55%;">Deskripsi Layanan</th>
+                    <th style="width: 10%;" class="text-center">Jumlah</th>
+                    <th style="width: 15%;" class="text-right">Harga Satuan</th>
+                    <th style="width: 15%;" class="text-right">Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="text-center">1</td>
+                    <td><strong>Biaya Registrasi & Administrasi Awal</strong></td>
+                    <td class="text-center">1</td>
+                    <td class="text-right">Rp 0</td>
+                    <td class="text-right">Rp 0</td>
+                </tr>
+                <tr>
+                    <td class="text-center">2</td>
+                    <td><strong>Biaya Instalasi & Penarikan Kabel FO</strong></td>
+                    <td class="text-center">1</td>
+                    <td class="text-right">Rp 0</td>
+                    <td class="text-right">Rp 0</td>
+                </tr>
+                <tr>
+                    <td class="text-center">3</td>
+                    <td><strong>Paket Internet JSN Home - 30 Mbps</strong><br><small style="color:#777;">Bulan ke-1:
+                            Periode 20 Juli - 20 Agustus 2026</small></td>
+                    <td class="text-center">1</td>
+                    <td class="text-right">Rp 300.000</td>
+                    <td class="text-right">Rp 300.000</td>
+                </tr>
+                <tr>
+                    <td class="text-center">4</td>
+                    <td><strong>Sewa Perangkat ONT / Modem Wi-Fi</strong></td>
+                    <td class="text-center">1</td>
+                    <td class="text-right">Rp 0</td>
+                    <td class="text-right" style="color: green; font-weight: bold;">FREE</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- Bagian Totalitas Pembayaran -->
+        <div class="total-section">
+            <table>
+                <tr>
+                    <td>Subtotal</td>
+                    <td class="text-right">Rp 300.000</td>
+                </tr>
+                <tr>
+                    <td>PPN (11%)</td>
+                    <td class="text-right">Rp 33.000</td>
+                </tr>
+                <tr class="grand-total">
+                    <td>Total Bayar</td>
+                    <td class="text-right">Rp 333.000</td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- Instruksi Pembayaran -->
+        <div class="payment-methods">
+            <h4>Metode Pembayaran Resmi:</h4>
+            <ul>
+                <li><strong>Bank Mandiri Virtual Account:</strong> 88932 + Nomor HP Anda</li>
+                <li><strong>Bank BCA Rekening:</strong> 123-456-7890 (a.n. PT Jaringan Sarana Nusantara)</li>
+            </ul>
+            <p class="note">*Catatan: Proses aktivasi internet Anda akan memakan waktu maksimal 2x24 jam setelah
+                pembayaran ini diverifikasi oleh sistem.</p>
+        </div>
+    </div>
+
+</body>
+
+</html>
