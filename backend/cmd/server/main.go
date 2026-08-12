@@ -167,6 +167,7 @@ func main() {
 	v1.Get("/registrations/public/:id", publicHandler.GetPublicRegistration)
 	v1.Get("/packages", publicHandler.ListPackages)
 	v1.Get("/public-configs", publicHandler.GetPublicConfigs)
+	v1.Get("/public-odps", csHandler.ListODPs)
 
 	// Auth routes
 	authGroup := v1.Group("/auth")

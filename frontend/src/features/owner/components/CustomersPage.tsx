@@ -89,26 +89,26 @@ export default function CustomersPage({ role = 'owner' }: CustomersPageProps) {
   const meta = data?.meta
 
   return (
-    <div className="p-6 space-y-4 w-full">
+    <div className="p-4 sm:p-6 space-y-4 w-full">
       {/* Table Card */}
       <div className="bg-white dark:bg-zinc-900 rounded-lg border border-gray-250 dark:border-zinc-800 overflow-hidden">
         {/* Toolbar */}
-        <div className="px-6 py-4 border-b border-gray-200 dark:border-zinc-800 flex flex-wrap gap-3 items-center justify-between">
+        <div className="px-4 sm:px-6 py-4 border-b border-gray-200 dark:border-zinc-800 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
           <h3 className="text-sm font-semibold text-gray-900 dark:text-zinc-100">Pelanggan Aktif</h3>
-          <div className="flex gap-3 flex-wrap">
-            <div className="relative">
+          <div className="flex gap-3 flex-wrap w-full sm:w-auto">
+            <div className="relative w-full sm:w-auto">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-zinc-400" />
               <input
                 value={searchVal}
                 onChange={(e) => setSearchVal(e.target.value)}
                 placeholder="Cari nama, no. pelanggan, telp..."
-                className="pl-9 pr-4 py-1.5 text-xs rounded-md bg-white dark:bg-zinc-950 border border-gray-200 dark:border-zinc-800 focus:outline-none focus:ring-2 focus:ring-blue-500/40 w-64 text-gray-750 dark:text-zinc-200 placeholder-gray-400"
+                className="pl-9 pr-4 py-1.5 text-xs rounded-md bg-white dark:bg-zinc-950 border border-gray-200 dark:border-zinc-800 focus:outline-none focus:ring-2 focus:ring-blue-500/40 w-full sm:w-64 text-gray-750 dark:text-zinc-200 placeholder-gray-400"
               />
             </div>
             <button
               onClick={() => refetch()}
               disabled={isFetching}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-md bg-blue-600 hover:bg-blue-700 text-white font-semibold transition-colors disabled:opacity-50"
+              className="flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs rounded-md bg-blue-600 hover:bg-blue-700 text-white font-semibold transition-colors disabled:opacity-50 w-full sm:w-auto"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${isFetching ? 'animate-spin' : ''}`} />
               <span>Refresh</span>

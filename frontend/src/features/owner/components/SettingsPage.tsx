@@ -176,6 +176,10 @@ export default function SettingsPage({ activeSection = 'registration' }: Setting
     branding: [
       'brand_name',
       'brand_logo_url',
+      'brand_favicon_url',
+      'brand_primary_color',
+      'brand_secondary_color',
+      'brand_accent_color',
       'website_hero_title',
       'website_hero_subtitle',
       'website_contact_phone',
@@ -1146,9 +1150,82 @@ export default function SettingsPage({ activeSection = 'registration' }: Setting
                           />
                         </label>
                       </div>
-                      <p className="text-[9px] text-slate-450 dark:text-slate-500 leading-normal">
+                      <p className="text-[9px] text-slate-450 dark:text-slate-555 leading-normal">
                         Ukuran maksimal 2MB. Format file: PNG, JPG, JPEG, atau SVG. Gunakan logo transparan.
                       </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-1.5 pt-2">
+                  <label className="text-[11px] font-bold text-slate-755 dark:text-slate-350 block">Favicon Brand (URL)</label>
+                  <input
+                    type="text"
+                    value={getActiveConfigValue('brand_favicon_url')}
+                    onChange={(e) => handleChange('brand_favicon_url', e.target.value)}
+                    placeholder="Contoh: /favicon.ico atau URL eksternal"
+                    className="w-full px-4 py-2.5 rounded-xl bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800 text-slate-800 dark:text-white focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/10 text-xs font-semibold"
+                  />
+                </div>
+
+                <div className="pt-2">
+                  <span className="text-[11px] font-bold text-slate-755 dark:text-slate-350 block mb-2">Skema Warna Brand & Tema</span>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] text-slate-500 dark:text-slate-400 block font-semibold">Warna Primer</label>
+                      <div className="flex gap-2">
+                        <input
+                          type="color"
+                          value={getActiveConfigValue('brand_primary_color', '#2563eb')}
+                          onChange={(e) => handleChange('brand_primary_color', e.target.value)}
+                          className="w-9 h-9 rounded-lg cursor-pointer bg-transparent border border-slate-200 dark:border-slate-800 p-0.5 flex-shrink-0"
+                        />
+                        <input
+                          type="text"
+                          value={getActiveConfigValue('brand_primary_color', '#2563eb')}
+                          onChange={(e) => handleChange('brand_primary_color', e.target.value)}
+                          placeholder="#2563eb"
+                          className="flex-1 px-3 py-2 rounded-xl bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800 text-slate-800 dark:text-white text-xs font-mono uppercase"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] text-slate-500 dark:text-slate-400 block font-semibold">Warna Sekunder</label>
+                      <div className="flex gap-2">
+                        <input
+                          type="color"
+                          value={getActiveConfigValue('brand_secondary_color', '#4f46e5')}
+                          onChange={(e) => handleChange('brand_secondary_color', e.target.value)}
+                          className="w-9 h-9 rounded-lg cursor-pointer bg-transparent border border-slate-200 dark:border-slate-800 p-0.5 flex-shrink-0"
+                        />
+                        <input
+                          type="text"
+                          value={getActiveConfigValue('brand_secondary_color', '#4f46e5')}
+                          onChange={(e) => handleChange('brand_secondary_color', e.target.value)}
+                          placeholder="#4f46e5"
+                          className="flex-1 px-3 py-2 rounded-xl bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800 text-slate-800 dark:text-white text-xs font-mono uppercase"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] text-slate-500 dark:text-slate-400 block font-semibold">Warna Aksen</label>
+                      <div className="flex gap-2">
+                        <input
+                          type="color"
+                          value={getActiveConfigValue('brand_accent_color', '#f59e0b')}
+                          onChange={(e) => handleChange('brand_accent_color', e.target.value)}
+                          className="w-9 h-9 rounded-lg cursor-pointer bg-transparent border border-slate-200 dark:border-slate-800 p-0.5 flex-shrink-0"
+                        />
+                        <input
+                          type="text"
+                          value={getActiveConfigValue('brand_accent_color', '#f59e0b')}
+                          onChange={(e) => handleChange('brand_accent_color', e.target.value)}
+                          placeholder="#f59e0b"
+                          className="flex-1 px-3 py-2 rounded-xl bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800 text-slate-800 dark:text-white text-xs font-mono uppercase"
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>

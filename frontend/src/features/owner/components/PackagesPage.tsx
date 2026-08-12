@@ -155,7 +155,7 @@ export default function PackagesPage() {
   })
 
   return (
-    <div className="p-8 space-y-6 w-full">
+    <div className="p-4 sm:p-6 md:p-8 space-y-6 w-full">
       <div className="bg-white dark:bg-zinc-900 rounded-lg border border-gray-200 dark:border-zinc-805 overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-150 dark:border-zinc-850 flex items-center justify-between bg-gray-50/50 dark:bg-zinc-950/40">
           <div>

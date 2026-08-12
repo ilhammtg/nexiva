@@ -219,7 +219,7 @@ export default function DashboardPage() {
       ]
 
   return (
-    <div className="p-8 space-y-8 w-full transition-colors duration-200">
+    <div className="p-4 sm:p-6 md:p-8 space-y-6 md:space-y-8 w-full transition-colors duration-200">
       {/* Top Filter and Actions Row */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>

@@ -10,6 +10,7 @@ import {
 import { publicApi, type RegionalItem } from '../api/publicApi'
 import { formatCurrency } from '@/lib/utils'
 import { toast } from 'sonner'
+import { useBrandingStore } from '@/stores/useBrandingStore'
 
 const getStatusTimelineColor = (status: string) => {
   const s = status ? status.toLowerCase() : ''
@@ -303,20 +304,34 @@ export default function RegisterPage() {
   const [loadingDistricts, setLoadingDistricts] = useState(false)
   const [loadingVillages, setLoadingVillages] = useState(false)
 
-  const [lockedRegionsStr, setLockedRegionsStr] = useState('')
+  const brandingConfig = useBrandingStore((s) => s.config)
 
-  // Dynamic Brand & Footer Config States
-  const [brandName, setBrandName] = useState('PT JSN')
-  const [brandLogoUrl, setBrandLogoUrl] = useState('')
-  const [brandFooterTagline, setBrandFooterTagline] = useState('Temukan Kemudahan Dalam Genggaman')
-  const [brandFooterLinks, setBrandFooterLinks] = useState<{ label: string; url: string }[]>([])
-  const [brandFooterSocials, setBrandFooterSocials] = useState<{ platform: string; url: string }[]>([])
-  const [brandFooterCopyright, setBrandFooterCopyright] = useState('Copyright 2026 PT JSN All Right Reserved.')
-  const [websiteHeroTitle, setWebsiteHeroTitle] = useState('Internet Cepat, Tanpa Batas, Untuk Keluarga Anda')
-  const [websiteHeroSubtitle, setWebsiteHeroSubtitle] = useState('Nikmati koneksi internet fiber optic super cepat, stabil, dan unlimited untuk aktivitas streaming, belajar, bekerja, dan gaming tanpa hambatan.')
-  const [websiteContactPhone, setWebsiteContactPhone] = useState('081234567890')
-  const [websiteContactEmail, setWebsiteContactEmail] = useState('support@ispcenter.net')
-  const [websiteAddress, setWebsiteAddress] = useState('Jl. Raya Utama No. 88, Banda Aceh, Indonesia')
+  const lockedRegionsStr = brandingConfig?.locked_regions || ''
+  const brandName = brandingConfig?.brand_name || 'PT JSN'
+  const brandLogoUrl = brandingConfig?.brand_logo_url || ''
+  const brandFooterTagline = brandingConfig?.brand_footer_tagline || 'Temukan Kemudahan Dalam Genggaman'
+  const brandFooterCopyright = brandingConfig?.brand_footer_copyright || 'Copyright 2026 PT JSN All Right Reserved.'
+  const websiteHeroTitle = brandingConfig?.website_hero_title || 'Internet Cepat, Tanpa Batas, Untuk Keluarga Anda'
+  const websiteHeroSubtitle = brandingConfig?.website_hero_subtitle || 'Nikmati koneksi internet fiber optic super cepat, stabil, dan unlimited untuk aktivitas streaming, belajar, bekerja, dan gaming tanpa hambatan.'
+  const websiteContactPhone = brandingConfig?.website_contact_phone || '081234567890'
+  const websiteContactEmail = brandingConfig?.website_contact_email || 'support@ispcenter.net'
+  const websiteAddress = brandingConfig?.website_address || 'Jl. Raya Utama No. 88, Banda Aceh, Indonesia'
+
+  const brandFooterLinks = (() => {
+    try {
+      return brandingConfig?.brand_footer_links ? JSON.parse(brandingConfig.brand_footer_links) : []
+    } catch {
+      return []
+    }
+  })()
+
+  const brandFooterSocials = (() => {
+    try {
+      return brandingConfig?.brand_footer_socials ? JSON.parse(brandingConfig.brand_footer_socials) : []
+    } catch {
+      return []
+    }
+  })()
 
   // Package Filter States
   const [filterPrice, setFilterPrice] = useState<string>('all')
@@ -347,6 +362,26 @@ export default function RegisterPage() {
     const saved = sessionStorage.getItem('reg_mapsLng')
     return saved ? Number(saved) : null
   })
+
+  // ODP details for public registration
+  const [odps, setOdps] = useState<any[]>([])
+  const [nearestOdp, setNearestOdp] = useState<any | null>(null)
+  const [distanceToOdp, setDistanceToOdp] = useState<number | null>(null)
+  const odpLayerRef = useRef<any>(null)
+  const polylineRef = useRef<any>(null)
+
+  // Fetch public ODPs when on step 3
+  useEffect(() => {
+    if (step === 3) {
+      publicApi.getPublicODPs()
+        .then(data => {
+          setOdps(data ?? [])
+        })
+        .catch(err => {
+          console.error("Failed to load public ODP locations:", err)
+        })
+    }
+  }, [step])
 
   // Clear Registration Session Storage on success
   const clearSessionStorage = () => {
@@ -549,40 +584,8 @@ export default function RegisterPage() {
   // Load Provinces and Config on mount
   useEffect(() => {
     const init = async () => {
-      // 1. Load Branding Config
-      try {
-        const configData = await publicApi.getPublicConfigs()
-        if (configData) {
-          setLockedRegionsStr(configData.locked_regions || '')
-          setBrandName(configData.brand_name || 'PT JSN')
-          setBrandLogoUrl(configData.brand_logo_url || '')
-          setBrandFooterTagline(configData.brand_footer_tagline || 'Temukan Kemudahan Dalam Genggaman')
-          setBrandFooterCopyright(configData.brand_footer_copyright || 'Copyright 2026 PT JSN All Right Reserved.')
-          setWebsiteHeroTitle(configData.website_hero_title || 'Internet Cepat, Tanpa Batas, Untuk Keluarga Anda')
-          setWebsiteHeroSubtitle(configData.website_hero_subtitle || 'Nikmati koneksi internet fiber optic super cepat, stabil, dan unlimited untuk aktivitas streaming, belajar, bekerja, dan gaming tanpa hambatan.')
-          setWebsiteContactPhone(configData.website_contact_phone || '081234567890')
-          setWebsiteContactEmail(configData.website_contact_email || 'support@ispcenter.net')
-          setWebsiteAddress(configData.website_address || 'Jl. Raya Utama No. 88, Banda Aceh, Indonesia')
-
-          try {
-            if (configData.brand_footer_links) {
-              setBrandFooterLinks(JSON.parse(configData.brand_footer_links))
-            }
-          } catch (e) {
-            console.error('Error parsing brand footer links:', e)
-          }
-
-          try {
-            if (configData.brand_footer_socials) {
-              setBrandFooterSocials(JSON.parse(configData.brand_footer_socials))
-            }
-          } catch (e) {
-            console.error('Error parsing brand footer socials:', e)
-          }
-        }
-      } catch (err) {
-        console.error('Failed to load branding configurations:', err)
-      }
+      // 1. Fetch Branding Config
+      useBrandingStore.getState().fetchConfig()
 
       // 2. Load Regional Provinces
       try {
@@ -730,6 +733,10 @@ export default function RegisterPage() {
       mapRef.current = mapInstance
       tileLayerRef.current = tileLayer
 
+      // Create Layer Group for ODP markers and add to map
+      const odpGroup = L.layerGroup().addTo(mapInstance)
+      odpLayerRef.current = odpGroup
+
       // Fix Leaflet marker icon paths dynamically
       const DefaultIcon = L.icon({
         iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
@@ -841,6 +848,134 @@ export default function RegisterPage() {
     }
   }, [step])
 
+  // Helper distance function
+  const getDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+    const R = 6371000 // Earth radius in meters
+    const dLat = (lat2 - lat1) * Math.PI / 180
+    const dLon = (lon2 - lon1) * Math.PI / 180
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+              Math.sin(dLon/2) * Math.sin(dLon/2)
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))
+    return R * c
+  }
+
+  // Render ODPs & Connective Fiber Line to user location
+  useEffect(() => {
+    const map = mapRef.current
+    const group = odpLayerRef.current
+    const L = (window as any).L
+    if (!map || !group || !L) return
+
+    // Clear previous elements
+    group.clearLayers()
+    if (polylineRef.current) {
+      map.removeLayer(polylineRef.current)
+      polylineRef.current = null
+    }
+
+    if (!odps || odps.length === 0 || mapsLat === null || mapsLng === null) {
+      setNearestOdp(null)
+      setDistanceToOdp(null)
+      return
+    }
+
+    let nearest: any = null
+    let minDistance = Infinity
+
+    odps.forEach((odp) => {
+      const lat = Number(odp.latitude)
+      const lng = Number(odp.longitude)
+      if (isNaN(lat) || isNaN(lng) || lat === 0 || lng === 0) return
+
+      const dist = getDistance(mapsLat, mapsLng, lat, lng)
+      if (dist < minDistance) {
+        minDistance = dist
+        nearest = odp
+      }
+
+      // Render ODP marker
+      const percent = odp.total_ports > 0 ? (odp.used_ports / odp.total_ports) * 100 : 0
+      let ringColor = '#6366f1' // default
+      if (percent >= 100) ringColor = '#ef4444' // full
+      else if (percent >= 75) ringColor = '#f97316' // warning
+
+      const customIcon = L.divIcon({
+        className: 'custom-odp-marker',
+        html: `
+          <div class="relative flex flex-col items-center group cursor-pointer" style="filter: drop-shadow(0 2px 4px ${ringColor}44)">
+            <div class="px-2 py-1 rounded-lg bg-slate-900 border border-slate-700 text-white text-[10px] font-bold flex items-center gap-1 shadow-md">
+              <div class="w-1.5 h-1.5 rounded-full" style="background: ${ringColor}"></div>
+              <span class="text-slate-100">${odp.code}</span>
+              <span class="text-[8px] text-slate-400 bg-slate-800 px-1 rounded-sm font-mono">${odp.used_ports}/${odp.total_ports}</span>
+            </div>
+            <div class="w-0.5 h-1 bg-slate-700"></div>
+            <div class="relative flex items-center justify-center">
+              <div class="w-2.5 h-2.5 bg-slate-900 border-2 border-white rounded-full flex items-center justify-center shadow-sm" style="border-color: ${ringColor}">
+                <div class="w-1 h-1 rounded-full" style="background: ${ringColor}"></div>
+              </div>
+            </div>
+          </div>
+        `,
+        iconSize: [80, 40],
+        iconAnchor: [40, 36]
+      })
+
+      const odpMarker = L.marker([lat, lng], { icon: customIcon })
+      
+      // Add Popup detailing ports
+      odpMarker.bindPopup(`
+        <div class="font-sans p-1 text-slate-800">
+          <p class="font-extrabold text-xs text-blue-600">${odp.name || odp.code}</p>
+          <p class="text-[10px] text-slate-500 mt-0.5">Kode ODP: ${odp.code}</p>
+          <div class="flex items-center gap-2 mt-1.5">
+            <span class="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-mono">${odp.used_ports} / ${odp.total_ports} Port</span>
+            <span class="text-[10px] font-bold ${percent >= 100 ? 'text-red-500' : 'text-emerald-500'}">
+              ${percent >= 100 ? 'Penuh' : 'Tersedia'}
+            </span>
+          </div>
+        </div>
+      `)
+
+      const coverageCircle = L.circle([lat, lng], {
+        radius: 150,
+        color: ringColor,
+        fillColor: ringColor,
+        fillOpacity: 0.05,
+        weight: 1,
+        dashArray: '3, 3'
+      })
+
+      group.addLayer(odpMarker)
+      group.addLayer(coverageCircle)
+    })
+
+    if (nearest) {
+      setNearestOdp(nearest)
+      setDistanceToOdp(minDistance)
+
+      const start = [mapsLat, mapsLng]
+      const end = [Number(nearest.latitude), Number(nearest.longitude)]
+      
+      let lineColor = '#ef4444' // Red (outside range)
+      if (minDistance < 150) lineColor = '#10b981' // Green (< 150m)
+      else if (minDistance < 250) lineColor = '#f97316' // Orange (< 250m)
+
+      const connectionLine = L.polyline([start, end], {
+        color: lineColor,
+        weight: 2.5,
+        dashArray: '6, 6',
+        opacity: 0.85
+      }).addTo(map)
+
+      polylineRef.current = connectionLine
+    } else {
+      setNearestOdp(null)
+      setDistanceToOdp(null)
+    }
+
+  }, [odps, mapsLat, mapsLng])
+
   // Validate Step Inputs
   const isStepValid = () => {
     if (step === 1) return selectedPackageId !== ''
@@ -925,6 +1060,9 @@ export default function RegisterPage() {
     if (oltPortConfigId) {
       formData.append('olt_port_config_id', oltPortConfigId.trim())
     }
+    if (nearestOdp && nearestOdp.code) {
+      formData.append('odp_info', nearestOdp.code)
+    }
 
     try {
       const res = await publicApi.submitRegistration(formData)
@@ -955,27 +1093,27 @@ export default function RegisterPage() {
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col justify-between transition-colors duration-200">
 
       {/* 1. Header Bar */}
-      <header className="bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800/80 px-6 py-4 sticky top-0 z-30 transition-colors">
+      <header className="bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800/80 px-4 py-2.5 sm:px-6 sm:py-4 sticky top-0 z-30 transition-colors">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
             {brandLogoUrl ? (
-              <img src={brandLogoUrl} alt={brandName} className="h-14 w-auto object-contain" />
+              <img src={brandLogoUrl} alt={brandName} className="h-9 sm:h-14 w-auto object-contain" />
             ) : (
-              <div className="w-14 h-14 rounded-xl bg-blue-600 flex items-center justify-center shadow-sm">
-                <Wifi className="w-7 h-7 text-white" />
+              <div className="w-9 h-9 sm:w-14 sm:h-14 rounded-lg sm:rounded-xl bg-blue-600 flex items-center justify-center shadow-sm">
+                <Wifi className="w-4.5 h-4.5 sm:w-7 sm:h-7 text-white" />
               </div>
             )}
             <div>
-              <h1 className="text-lg sm:text-xl font-black text-slate-800 dark:text-white leading-none">
+              <h1 className="text-sm sm:text-xl font-black text-slate-800 dark:text-white leading-none">
                 {brandName}
               </h1>
-              <p className="text-[11px] text-orange-500 font-extrabold uppercase mt-0.5 tracking-wider">
+              <p className="text-[9px] sm:text-[11px] text-orange-500 font-extrabold uppercase mt-0.5 tracking-wider">
                 Registrasi Pelanggan Baru
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <button
               onClick={() => {
                 setStatusPhone('')
@@ -983,9 +1121,9 @@ export default function RegisterPage() {
                 setStatusResult(null)
                 setShowStatusModal(true)
               }}
-              className="text-xs font-bold text-blue-600 border border-blue-600 px-4 py-2 hover:bg-blue-50 dark:hover:bg-blue-950/20 rounded-xl transition-all shadow-sm flex items-center gap-1.5"
+              className="text-[10px] sm:text-xs font-bold text-blue-600 border border-blue-600 px-2.5 py-1.5 sm:px-4 sm:py-2 hover:bg-blue-50 dark:hover:bg-blue-950/20 rounded-lg sm:rounded-xl transition-all shadow-sm flex items-center gap-1"
             >
-              <FileText className="w-3.5 h-3.5" />
+              <FileText className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
               Cek Status Pendaftaran
             </button>
 
@@ -995,28 +1133,28 @@ export default function RegisterPage() {
       </header>
 
       {/* 2. Main Wizard Wrapper */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-8 flex flex-col justify-center">
+      <main className="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-8 flex flex-col justify-center">
 
         {step === 1 && (
-          <div className="text-center max-w-3xl mx-auto mb-10 mt-4 space-y-4 animate-fade-in">
-            <h2 className="text-[35px] sm:text-[48px] font-black text-slate-800 dark:text-white leading-tight tracking-tight">
+          <div className="text-center max-w-3xl mx-auto mb-8 mt-2 space-y-3.5 animate-fade-in px-2">
+            <h2 className="text-2xl sm:text-[48px] font-black text-slate-800 dark:text-white leading-tight tracking-tight">
               {websiteHeroTitle}
             </h2>
-            <p className="text-base sm:text-lg text-slate-500 dark:text-slate-400 leading-relaxed font-medium">
+            <p className="text-xs sm:text-lg text-slate-500 dark:text-slate-400 leading-relaxed font-medium">
               {websiteHeroSubtitle}
             </p>
-            <div className="flex justify-center gap-4 pt-2">
+            <div className="flex flex-wrap justify-center gap-3 pt-2">
               <a
                 href={`https://wa.me/${websiteContactPhone}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-[18px] font-bold transition-all shadow-sm"
+                className="inline-flex items-center gap-2 px-4 py-2 sm:px-6 sm:py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl sm:rounded-2xl text-sm sm:text-[18px] font-bold transition-all shadow-sm"
               >
                 <span>Hubungi CS (WhatsApp)</span>
               </a>
               <a
                 href={`mailto:${websiteContactEmail}`}
-                className="inline-flex items-center gap-2 px-6 py-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-2xl text-[18px] font-bold transition-all"
+                className="inline-flex items-center gap-2 px-4 py-2 sm:px-6 sm:py-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl sm:rounded-2xl text-sm sm:text-[18px] font-bold transition-all"
               >
                 <span>Kirim Email</span>
               </a>
@@ -1058,14 +1196,14 @@ export default function RegisterPage() {
             </div>
 
             {/* Stepped Content Container */}
-            <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-3xl shadow-xl p-6 sm:p-8 border-t-4 border-t-blue-600 transition-colors">
+            <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl sm:rounded-3xl shadow-xl p-4 sm:p-8 border-t-4 border-t-blue-600 transition-colors">
 
               {/* STEP 1: PILIH PAKET INTERNET */}
               {step === 1 && (
                 <div className="space-y-6">
-                  <div className="border-b border-slate-100 dark:border-slate-800 pb-4">
-                    <h3 className="text-2xl sm:text-[28px] font-bold text-slate-800 dark:text-white">Pilih Paket Internet Terbaik</h3>
-                    <p className="text-base text-slate-500 dark:text-slate-400 mt-1">
+                  <div className="border-b border-slate-100 dark:border-slate-800 pb-3">
+                    <h3 className="text-lg sm:text-[28px] font-bold text-slate-800 dark:text-white">Pilih Paket Internet Terbaik</h3>
+                    <p className="text-xs sm:text-base text-slate-500 dark:text-slate-400 mt-1">
                       Koneksi internet super cepat dan stabil untuk kebutuhan rumah Anda. Saring paket sesuai harga dan kecepatan.
                     </p>
                   </div>
@@ -1157,7 +1295,7 @@ export default function RegisterPage() {
                       <div className="bg-blue-50/50 dark:bg-blue-950/10 border border-blue-100/50 dark:border-blue-950/25 rounded-2xl p-4 flex gap-3 items-start">
                         <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
                         <div className="text-xs text-blue-800 dark:text-blue-300 font-semibold leading-relaxed">
-                          Ketersediaan jaringan dan promo paket khusus ini menyesuaikan wilayah pemasangan (Khusus Wilayah Aceh Bireuen). Harga bulanan sudah termasuk PPN dan biaya pasang.
+                          Ketersediaan jaringan dan promo paket khusus ini menyesuaikan wilayah jangkauan kami. Harga bulanan sudah termasuk PPN dan biaya pasang.
                         </div>
                       </div>
 
@@ -1230,9 +1368,9 @@ export default function RegisterPage() {
                                 <button
                                   type="button"
                                   onClick={() => setDetailedPkg(pkg)}
-                                  className="w-full mt-4 py-2.5 px-4 rounded-xl text-base font-bold bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors text-center flex items-center justify-center gap-1.5"
+                                  className="w-full mt-4 py-2 px-3.5 sm:py-2.5 sm:px-4 rounded-lg sm:rounded-xl text-sm sm:text-base font-bold bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors text-center flex items-center justify-center gap-1.5"
                                 >
-                                  <Info className="w-4 h-4" />
+                                  <Info className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                                   Lihat Detail Paket
                                 </button>
 
@@ -1242,13 +1380,13 @@ export default function RegisterPage() {
                                     setSelectedPackageId(pkg.ID)
                                     setStep(2)
                                   }}
-                                  className={`w-full mt-2 py-3 px-4 rounded-xl text-[18px] font-extrabold transition-all text-center flex items-center justify-center gap-1.5 ${selectedPackageId === pkg.ID
+                                  className={`w-full mt-2 py-2.5 px-4 rounded-lg sm:rounded-xl text-sm sm:text-[18px] font-extrabold transition-all text-center flex items-center justify-center gap-1.5 ${selectedPackageId === pkg.ID
                                     ? 'bg-orange-500 hover:bg-orange-600 text-white shadow-sm'
                                     : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-white'
                                     }`}
                                 >
                                   Pilih Paket Ini
-                                  <ArrowRight className="w-4 h-4" />
+                                  <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                                 </button>
                               </div>
                             </div>
@@ -1263,9 +1401,9 @@ export default function RegisterPage() {
               {/* STEP 2: DATA DIRI PELANGGAN */}
               {step === 2 && (
                 <div className="space-y-6">
-                  <div className="border-b border-slate-100 dark:border-slate-800 pb-4">
-                    <h3 className="text-2xl sm:text-[28px] font-bold text-slate-800 dark:text-white">Informasi Data Diri</h3>
-                    <p className="text-base text-slate-500 dark:text-slate-400 mt-1">Lengkapi data pribadi Anda dengan data yang valid dan sesuai KTP asli</p>
+                  <div className="border-b border-slate-100 dark:border-slate-800 pb-3">
+                    <h3 className="text-lg sm:text-[28px] font-bold text-slate-800 dark:text-white">Informasi Data Diri</h3>
+                    <p className="text-xs sm:text-base text-slate-500 dark:text-slate-400 mt-1">Lengkapi data pribadi Anda dengan data yang valid dan sesuai KTP asli</p>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
@@ -1388,9 +1526,9 @@ export default function RegisterPage() {
               {/* STEP 3: ALAMAT PEMASANGAN */}
               {step === 3 && (
                 <div className="space-y-6">
-                  <div className="border-b border-slate-100 dark:border-slate-800 pb-4">
-                    <h3 className="text-2xl sm:text-[28px] font-bold text-slate-800 dark:text-white">Alamat Lengkap Pemasangan</h3>
-                    <p className="text-base text-slate-500 dark:text-slate-400 mt-1">
+                  <div className="border-b border-slate-100 dark:border-slate-800 pb-3">
+                    <h3 className="text-lg sm:text-[28px] font-bold text-slate-800 dark:text-white">Alamat Lengkap Pemasangan</h3>
+                    <p className="text-xs sm:text-base text-slate-500 dark:text-slate-400 mt-1">
                       Ketersediaan layanan saat ini dikunci untuk Provinsi Aceh saja. Mohon pilih kecamatan dan desa dengan benar.
                     </p>
                   </div>
@@ -1576,8 +1714,46 @@ export default function RegisterPage() {
 
                       <div
                         id="register-map"
-                        className="w-full h-[320px] md:h-[480px] rounded-3xl border border-slate-200/80 dark:border-slate-800 overflow-hidden z-10 shadow-lg"
+                        className="w-full h-[320px] md:h-[480px] rounded-2xl sm:rounded-3xl border border-slate-200/80 dark:border-slate-800 overflow-hidden z-10 shadow-lg"
                       ></div>
+
+                      {nearestOdp && distanceToOdp !== null && (
+                        <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-2xl p-4 mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 transition-all duration-300">
+                          <div className="flex items-start gap-3">
+                            <div className="mt-1 p-2 rounded-xl bg-blue-50 dark:bg-blue-950/20 text-blue-600 flex-shrink-0">
+                              <Wifi className="w-5 h-5" />
+                            </div>
+                            <div>
+                              <h4 className="text-xs font-black text-slate-800 dark:text-slate-205 uppercase tracking-wider">Deteksi Jangkauan ODP</h4>
+                              <p className="text-[11px] text-slate-500 mt-1 font-semibold">
+                                ODP Terdekat: <span className="font-extrabold text-blue-600 dark:text-blue-400">{nearestOdp.name || nearestOdp.code}</span>
+                              </p>
+                              <p className="text-[11px] text-slate-500 font-semibold mt-0.5">
+                                Estimasi Jarak: <span className="font-extrabold text-slate-700 dark:text-slate-300">{distanceToOdp.toFixed(0)} meter</span>
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            {distanceToOdp < 150 ? (
+                              <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 border border-emerald-200/65">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                Tercover (Sangat Layak)
+                              </span>
+                            ) : distanceToOdp < 250 ? (
+                              <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-orange-50 dark:bg-orange-950/30 text-orange-600 border border-orange-200/65">
+                                <span className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse"></span>
+                                Cukup Layak (Butuh Kabel Ekstra)
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-rose-50 dark:bg-rose-950/30 text-rose-600 border border-rose-200/65">
+                                <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse"></span>
+                                Di Luar Jangkauan (Butuh Survei Khusus)
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      )}
 
                       <p className="text-[10px] text-slate-400 dark:text-slate-500 leading-normal font-semibold flex items-start gap-1.5 mt-1.5">
                         <Info className="w-3.5 h-3.5 text-blue-600 dark:text-blue-500 flex-shrink-0 mt-0.5" />
@@ -1591,9 +1767,9 @@ export default function RegisterPage() {
               {/* STEP 4: KONFIRMASI DATA */}
               {step === 4 && (
                 <div className="space-y-6">
-                  <div className="border-b border-slate-100 dark:border-slate-800 pb-4">
-                    <h3 className="text-2xl sm:text-[28px] font-bold text-slate-800 dark:text-white">Tinjau Pendaftaran Anda</h3>
-                    <p className="text-base text-slate-500 dark:text-slate-400 mt-1">Periksa kembali seluruh data pribadi dan koordinat peta sebelum mengirim pendaftaran</p>
+                  <div className="border-b border-slate-100 dark:border-slate-800 pb-3">
+                    <h3 className="text-lg sm:text-[28px] font-bold text-slate-800 dark:text-white">Tinjau Pendaftaran Anda</h3>
+                    <p className="text-xs sm:text-base text-slate-500 dark:text-slate-400 mt-1">Periksa kembali seluruh data pribadi dan koordinat peta sebelum mengirim pendaftaran</p>
                   </div>
 
                   <div className="space-y-4">
@@ -1667,6 +1843,31 @@ export default function RegisterPage() {
                             {mapsLat !== null && mapsLng !== null ? `${mapsLat}, ${mapsLng}` : 'Belum ditentukan'}
                           </span>
                         </div>
+                        {nearestOdp && distanceToOdp !== null && (
+                          <div className="sm:col-span-2 space-y-1 mt-1 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200/50 dark:border-slate-800 flex items-center justify-between flex-wrap gap-2">
+                            <div>
+                              <span className="text-slate-400 uppercase tracking-wider block font-bold">Deteksi Jangkauan ODP</span>
+                              <span className="text-slate-800 dark:text-slate-200">
+                                ODP Terdekat: <span className="font-extrabold text-blue-600 dark:text-blue-400">{nearestOdp.name || nearestOdp.code}</span> ({distanceToOdp.toFixed(0)}m)
+                              </span>
+                            </div>
+                            <div>
+                              {distanceToOdp < 150 ? (
+                                <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[9px] font-black uppercase tracking-wider bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 border border-emerald-200/40">
+                                  Tercover
+                                </span>
+                              ) : distanceToOdp < 250 ? (
+                                <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[9px] font-black uppercase tracking-wider bg-orange-50 dark:bg-orange-950/30 text-orange-600 border border-orange-200/40">
+                                  Cukup Layak
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[9px] font-black uppercase tracking-wider bg-rose-50 dark:bg-rose-950/30 text-rose-600 border border-rose-200/40">
+                                  Luar Jangkauan
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        )}
                         {googleMapsLink.trim() !== '' && (
                           <div className="sm:col-span-2 space-y-1">
                             <span className="text-slate-400 uppercase tracking-wider block font-bold">Link Google Maps</span>
@@ -1711,9 +1912,9 @@ export default function RegisterPage() {
                   <button
                     type="button"
                     onClick={() => setStep(step - 1)}
-                    className="flex items-center gap-2 py-3 px-5 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 text-[18px] font-bold transition-all"
+                    className="flex items-center gap-2 py-2.5 px-4 sm:py-3 sm:px-5 rounded-lg sm:rounded-xl border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 text-sm sm:text-[18px] font-bold transition-all"
                   >
-                    <ArrowLeft className="w-5 h-5" />
+                    <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
                     Sebelumnya
                   </button>
                 ) : (
@@ -1725,24 +1926,24 @@ export default function RegisterPage() {
                     type="button"
                     onClick={() => setStep(step + 1)}
                     disabled={!isStepValid()}
-                    className="flex items-center gap-2 py-3 px-6 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-[18px] font-bold shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                    className="flex items-center gap-2 py-2.5 px-4.5 sm:py-3 sm:px-6 rounded-lg sm:rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-sm sm:text-[18px] font-bold shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                   >
                     Selanjutnya
-                    <ArrowRight className="w-5 h-5" />
+                    <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5" />
                   </button>
                 ) : (
                   <button
                     type="button"
                     onClick={handleSubmit}
                     disabled={submitting}
-                    className="flex items-center gap-2 py-3 px-7 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-[18px] font-extrabold shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                    className="flex items-center gap-2 py-2.5 px-5 sm:py-3 sm:px-7 rounded-lg sm:rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-sm sm:text-[18px] font-extrabold shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                   >
                     {submitting ? (
-                      <><Loader2 className="w-5 h-5 animate-spin" /> Mengirim...</>
+                      <><Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" /> Mengirim...</>
                     ) : (
                       <>
                         Kirim Pendaftaran
-                        <ArrowRight className="w-5 h-5" />
+                        <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5" />
                       </>
                     )}
                   </button>
@@ -2211,7 +2412,7 @@ export default function RegisterPage() {
             <h4 className="text-xs font-black uppercase tracking-wider text-slate-400">Tautan Layanan</h4>
             <ul className="space-y-2.5 text-xs text-slate-300 font-semibold">
               {brandFooterLinks.length > 0 ? (
-                brandFooterLinks.map((link, idx) => (
+                brandFooterLinks.map((link: { url: string; label: string }, idx: number) => (
                   <li key={idx}>
                     <a href={link.url} className="hover:text-white transition-colors">{link.label}</a>
                   </li>
@@ -2232,7 +2433,7 @@ export default function RegisterPage() {
             <h4 className="text-xs font-black uppercase tracking-wider text-slate-400">Media Sosial Kami</h4>
             <div className="flex items-center gap-3">
               {brandFooterSocials.length > 0 ? (
-                brandFooterSocials.map((soc, idx) => {
+                brandFooterSocials.map((soc: { platform: string; url: string }, idx: number) => {
                   const platform = soc.platform.toLowerCase()
                   let icon = <Globe className="w-4 h-4" />
                   if (platform.includes('facebook') || platform === 'fb') {

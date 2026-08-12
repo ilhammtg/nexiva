@@ -50,7 +50,7 @@ function NotificationDropdown({ onClose }: { onClose: () => void }) {
   const { notifications, markAllRead, markRead, clear, unreadCount } = useNotificationStore()
 
   return (
-    <div className="absolute right-0 top-full mt-2.5 w-[360px] bg-white dark:bg-zinc-900 rounded-lg shadow-lg border border-gray-200 dark:border-zinc-800 z-50 overflow-hidden">
+    <div className="absolute right-0 top-full mt-2.5 w-[calc(100vw-32px)] sm:w-[360px] bg-white dark:bg-zinc-900 rounded-lg shadow-lg border border-gray-200 dark:border-zinc-800 z-50 overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3.5 border-b border-gray-100 dark:border-zinc-800">
         <div className="flex items-center gap-2">

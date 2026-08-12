@@ -40,29 +40,29 @@ Sistem ini dibangun menggunakan teknologi pilihan yang andal dan teruji:
 
 ## 📂 Panduan Dokumentasi Lengkap
 
-Seluruh informasi detail mengenai proyek ini telah disusun secara rapi di dalam direktori [`/docs/`](file:///home/ilham/data/coding/isp-platform/docs):
+Seluruh informasi detail mengenai proyek ini telah disusun secara rapi di dalam direktori [`/docs/`](file:///home/ilham/data/coding/nexiva/docs):
 
 | Dokumen | Isi & Deskripsi |
 |---|---|
-| 📖 [**`INSTALL.md`**](file:///home/ilham/data/coding/isp-platform/INSTALL.md) | **Instalasi Lengkap** & Cara menyalakan proyek di komputer baru |
-| 🧑‍💻 [**`AI-AGENT-GUIDE.md`**](file:///home/ilham/data/coding/isp-platform/docs/AI-AGENT-GUIDE.md) | Panduan instruksi untuk AI Coding Assistant |
-| 🗂️ [**`TECH-STACK.md`**](file:///home/ilham/data/coding/isp-platform/docs/TECH-STACK.md) | Detail versi pustaka (libraries) dan dependensi sistem |
-| 🖥️ [**`BACKEND-STRUCTURE.md`**](file:///home/ilham/data/coding/isp-platform/docs/BACKEND-STRUCTURE.md) | Struktur folder Go Backend & desain arsitektur kode |
-| 🎨 [**`FRONTEND-STRUCTURE.md`**](file:///home/ilham/data/coding/isp-platform/docs/FRONTEND-STRUCTURE.md) | Struktur folder React Frontend & styling guide |
-| ⚙️ [**`DATABASE-SCHEMA.md`**](file:///home/ilham/data/coding/isp-platform/docs/DATABASE-SCHEMA.md) | Penjelasan skema database PostgreSQL dan relasinya |
-| 📋 [**`PRD-registrasi-pelanggan.md`**](file:///home/ilham/data/coding/isp-platform/docs/PRD-registrasi-pelanggan.md) | *Product Requirement Document* (Dokumen Kebutuhan Bisnis) |
-| 📝 [**`CODING-CONVENTIONS.md`**](file:///home/ilham/data/coding/isp-platform/docs/CODING-CONVENTIONS.md) | Aturan penulisan kode, commit Git, dan penamaan variabel |
+| 📖 [**`INSTALL.md`**](file:///home/ilham/data/coding/nexiva/INSTALL.md) | **Instalasi Lengkap** & Cara menyalakan proyek di komputer baru |
+| 🧑‍💻 [**`AI-AGENT-GUIDE.md`**](file:///home/ilham/data/coding/nexiva/docs/AI-AGENT-GUIDE.md) | Panduan instruksi untuk AI Coding Assistant |
+| 🗂️ [**`TECH-STACK.md`**](file:///home/ilham/data/coding/nexiva/docs/TECH-STACK.md) | Detail versi pustaka (libraries) dan dependensi sistem |
+| 🖥️ [**`BACKEND-STRUCTURE.md`**](file:///home/ilham/data/coding/nexiva/docs/BACKEND-STRUCTURE.md) | Struktur folder Go Backend & desain arsitektur kode |
+| 🎨 [**`FRONTEND-STRUCTURE.md`**](file:///home/ilham/data/coding/nexiva/docs/FRONTEND-STRUCTURE.md) | Struktur folder React Frontend & styling guide |
+| ⚙️ [**`DATABASE-SCHEMA.md`**](file:///home/ilham/data/coding/nexiva/docs/DATABASE-SCHEMA.md) | Penjelasan skema database PostgreSQL dan relasinya |
+| 📋 [**`PRD-registrasi-pelanggan.md`**](file:///home/ilham/data/coding/nexiva/docs/PRD-registrasi-pelanggan.md) | *Product Requirement Document* (Dokumen Kebutuhan Bisnis) |
+| 📝 [**`CODING-CONVENTIONS.md`**](file:///home/ilham/data/coding/nexiva/docs/CODING-CONVENTIONS.md) | Aturan penulisan kode, commit Git, dan penamaan variabel |
 
 ---
 
 ## ⚡ Memulai Cepat (Quick Start)
 
-Untuk detail instalasi lengkap dari nol, harap ikuti panduan **[`INSTALL.md`](file:///home/ilham/data/coding/isp-platform/INSTALL.md)**. Berikut ini adalah ringkasan perintah cepat untuk memulai:
+Untuk detail instalasi lengkap dari nol, harap ikuti panduan **[`INSTALL.md`](file:///home/ilham/data/coding/nexiva/INSTALL.md)**. Berikut ini adalah ringkasan perintah cepat untuk memulai:
 
 ```bash
-# 1. Clone repositori & masuk ke folder project
-git clone git@github.com:ilhammtg/isp-platform.git
-cd isp-platform
+# 1. Clone repositori & masuk to folder project
+git clone git@github.com:ilhammtg/nexiva.git
+cd nexiva
 
 # 2. Salin environment konfigurasi default
 cp backend/.env.example backend/.env

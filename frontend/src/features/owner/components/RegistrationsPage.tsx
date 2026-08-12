@@ -41,26 +41,26 @@ export default function RegistrationsPage() {
   }
 
   return (
-    <div className="p-8 w-full">
+    <div className="p-4 sm:p-6 md:p-8 w-full">
       <div className="bg-white dark:bg-zinc-900 rounded-lg border border-gray-200 dark:border-zinc-805 overflow-hidden">
 
         {/* Toolbar */}
-        <div className="px-6 py-4 border-b border-gray-150 dark:border-zinc-850 flex flex-wrap gap-3 items-center justify-between bg-gray-50/50 dark:bg-zinc-950/40">
+        <div className="px-4 sm:px-6 py-4 border-b border-gray-150 dark:border-zinc-850 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between bg-gray-50/50 dark:bg-zinc-950/40">
           <h3 className="text-sm font-semibold text-gray-900 dark:text-zinc-100">Daftar Registrasi</h3>
-          <div className="flex gap-3 flex-wrap">
-            <div className="relative">
+          <div className="flex gap-3 flex-wrap w-full sm:w-auto">
+            <div className="relative w-full sm:w-auto">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input
                 value={search}
                 onChange={(e) => { setSearch(e.target.value); setPage(1) }}
                 placeholder="Cari nama / nomor..."
-                className="pl-9 pr-4 py-1.5 text-xs rounded-md bg-white dark:bg-zinc-950 border border-gray-255 dark:border-zinc-800 focus:outline-none focus:ring-2 focus:ring-blue-500/40 w-48 text-gray-750 dark:text-zinc-200 placeholder-gray-400"
+                className="pl-9 pr-4 py-1.5 text-xs rounded-md bg-white dark:bg-zinc-950 border border-gray-255 dark:border-zinc-800 focus:outline-none focus:ring-2 focus:ring-blue-500/40 w-full sm:w-48 text-gray-750 dark:text-zinc-200 placeholder-gray-400"
               />
             </div>
             <select
               value={status}
               onChange={(e) => { setStatus(e.target.value); setPage(1) }}
-              className="text-xs rounded-md bg-white dark:bg-zinc-950 border border-gray-255 dark:border-zinc-800 px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500/40 text-gray-750 dark:text-zinc-200 font-medium"
+              className="text-xs rounded-md bg-white dark:bg-zinc-950 border border-gray-255 dark:border-zinc-800 px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500/40 text-gray-750 dark:text-zinc-200 font-medium w-full sm:w-auto"
             >
               {STATUS_OPTIONS.map((s) => (
                 <option key={s} value={s}>
@@ -71,13 +71,13 @@ export default function RegistrationsPage() {
             <button
               onClick={() => refetch()}
               disabled={isFetching}
-              className="px-3 py-1.5 text-xs rounded-md bg-white hover:bg-gray-100 dark:bg-zinc-950 dark:hover:bg-zinc-800 text-gray-700 dark:text-zinc-350 font-semibold transition-colors border border-gray-250 dark:border-zinc-800 inline-flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-3 py-1.5 text-xs rounded-md bg-white hover:bg-gray-100 dark:bg-zinc-950 dark:hover:bg-zinc-800 text-gray-700 dark:text-zinc-355 font-semibold transition-colors border border-gray-250 dark:border-zinc-800 inline-flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${isFetching ? 'animate-spin' : ''}`} /> Refresh
             </button>
             <button
               onClick={handleExport}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-md bg-emerald-600 hover:bg-emerald-700 text-white font-semibold transition-colors"
+              className="flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs rounded-md bg-emerald-600 hover:bg-emerald-700 text-white font-semibold transition-colors w-full sm:w-auto"
             >
               <Download className="w-4 h-4" /> Export CSV
             </button>

@@ -1,7 +1,7 @@
 #!/bin/bash
 # reset_and_reseed.sh
 # Script untuk mereset dan mengisi ulang data pelanggan Peusangan
-# Jalankan dari root directory isp-platform: ./reset_and_reseed.sh
+# Jalankan dari root directory nexiva: ./reset_and_reseed.sh
 
 set -e
 

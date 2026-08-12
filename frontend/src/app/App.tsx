@@ -37,6 +37,7 @@ import InvoicePage from '@/features/public/components/InvoicePage'
 import ReceiptPage from '@/features/public/components/ReceiptPage'
 
 import { useThemeStore } from '@/stores/useThemeStore'
+import { useBrandingStore, applyMetadata } from '@/stores/useBrandingStore'
 
 const qc = new QueryClient({
   defaultOptions: {
@@ -47,6 +48,12 @@ const qc = new QueryClient({
 function ThemeApplier() {
   const theme = useThemeStore((s) => s.theme)
   const location = useLocation()
+  const fetchBranding = useBrandingStore((s) => s.fetchConfig)
+  const brandingConfig = useBrandingStore((s) => s.config)
+
+  useEffect(() => {
+    fetchBranding()
+  }, [fetchBranding])
 
   useEffect(() => {
     const isPublicPage = location.pathname === '/' || 
@@ -63,6 +70,12 @@ function ThemeApplier() {
       document.documentElement.classList.remove('dark')
     }
   }, [theme, location.pathname])
+
+  useEffect(() => {
+    if (brandingConfig) {
+      applyMetadata(brandingConfig)
+    }
+  }, [location.pathname, brandingConfig])
 
   return null
 }

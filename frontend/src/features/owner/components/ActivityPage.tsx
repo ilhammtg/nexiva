@@ -76,7 +76,7 @@ export default function ActivityPage({ role = 'owner' }: { role?: 'owner' | 'cs_
   }
 
   return (
-    <div className="p-8 space-y-6 w-full">
+    <div className="p-4 sm:p-6 md:p-8 space-y-6 w-full">
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
@@ -88,7 +88,7 @@ export default function ActivityPage({ role = 'owner' }: { role?: 'owner' | 'cs_
         <button
           onClick={() => refetch()}
           disabled={isLoading || isFetching}
-          className="p-2 rounded-md border border-gray-250 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-gray-500 dark:text-zinc-400 hover:bg-gray-50 dark:hover:bg-zinc-800/60 transition-colors shadow-sm disabled:opacity-50 inline-flex items-center gap-1.5 text-xs font-semibold"
+          className="p-2 rounded-md border border-gray-250 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-gray-500 dark:text-zinc-400 hover:bg-gray-50 dark:hover:bg-zinc-800/60 transition-colors shadow-sm disabled:opacity-50 inline-flex items-center justify-center gap-1.5 text-xs font-semibold w-full sm:w-auto"
         >
           <RefreshCw className={`w-3.5 h-3.5 ${isFetching ? 'animate-spin' : ''}`} />
           Refresh Log
@@ -96,15 +96,15 @@ export default function ActivityPage({ role = 'owner' }: { role?: 'owner' | 'cs_
       </div>
 
       {/* Filter Bar */}
-      <div className="bg-white dark:bg-zinc-900 p-4 rounded-lg border border-gray-200 dark:border-zinc-805 flex flex-wrap items-center gap-3.5">
-        <div className="relative flex-1 min-w-[240px]">
+      <div className="bg-white dark:bg-zinc-900 p-4 rounded-lg border border-gray-200 dark:border-zinc-805 flex flex-col sm:flex-row items-stretch sm:items-center gap-3.5">
+        <div className="relative w-full sm:flex-1 sm:min-w-[240px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-zinc-500" />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Cari ID Registrasi, catatan, atau peran..."
-            className="pl-9 pr-4 py-1.5 w-full text-xs rounded-md bg-gray-50 dark:bg-zinc-950 border border-gray-250 dark:border-zinc-800 focus:outline-none focus:ring-2 focus:ring-blue-500/40 text-gray-700 dark:text-zinc-200 placeholder-gray-450"
+            className="pl-9 pr-4 py-1.5 w-full text-xs rounded-md bg-gray-50 dark:bg-zinc-950 border border-gray-250 dark:border-zinc-800 focus:outline-none focus:ring-2 focus:ring-blue-500/40 text-gray-750 dark:text-zinc-200 placeholder-gray-450"
           />
           {search && (
             <button 
@@ -117,12 +117,12 @@ export default function ActivityPage({ role = 'owner' }: { role?: 'owner' | 'cs_
         </div>
 
         {/* Role Filter */}
-        <div className="flex items-center gap-2">
-          <Filter className="w-3.5 h-3.5 text-gray-400" />
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <Filter className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
           <select
             value={selectedRole}
             onChange={(e) => setSelectedRole(e.target.value)}
-            className="text-xs rounded-md bg-gray-50 dark:bg-zinc-955 border border-gray-250 dark:border-zinc-800 px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500/40 text-gray-700 dark:text-zinc-200"
+            className="text-xs rounded-md bg-gray-50 dark:bg-zinc-955 border border-gray-250 dark:border-zinc-800 px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500/40 text-gray-750 dark:text-zinc-200 w-full sm:w-auto font-medium"
           >
             {ROLE_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>
@@ -136,7 +136,7 @@ export default function ActivityPage({ role = 'owner' }: { role?: 'owner' | 'cs_
         <select
           value={selectedStatus}
           onChange={(e) => setSelectedStatus(e.target.value)}
-          className="text-xs rounded-md bg-gray-50 dark:bg-zinc-955 border border-gray-255 dark:border-zinc-800 px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500/40 text-gray-700 dark:text-zinc-200"
+          className="text-xs rounded-md bg-gray-50 dark:bg-zinc-955 border border-gray-255 dark:border-zinc-800 px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500/40 text-gray-750 dark:text-zinc-200 w-full sm:w-auto font-medium"
         >
           {STATUS_OPTIONS.map((opt) => (
             <option key={opt.value} value={opt.value}>

@@ -57,7 +57,7 @@ export default function CSAdminRegisterModal({ onClose, onSuccess }: CSAdminRegi
     phone: '',
     email: '',
     province: 'Aceh',
-    city: 'Bireuen',
+    city: '',
     district: '',
     village: '',
     rt: '',

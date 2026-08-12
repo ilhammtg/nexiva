@@ -4,7 +4,7 @@ import { toast } from 'sonner'
 import {
   X, CheckCircle, XCircle, CreditCard, Wrench, MapPin, Pencil, Save,
   ZoomIn, ZoomOut, RotateCw, RotateCcw, Download, Send, Loader2, Server, ShieldAlert, Play,
-  Eye, EyeOff
+  Eye, EyeOff, Calendar, Clock
 } from 'lucide-react'
 import { StatusBadge } from '@/components/ui'
 import { formatDateTime, formatCurrency } from '@/lib/utils'
@@ -225,6 +225,18 @@ function MapPreviewTabs({ lat, lng, gmapsLink }: { lat: number | null; lng: numb
   )
 }
 
+// Helper to calculate active billing period
+function getMasaAktif(activatedAt: string | null): string {
+  if (!activatedAt) return '-'
+  const date = new Date(activatedAt)
+  const start = new Date(date)
+  const end = new Date(date)
+  end.setMonth(end.getMonth() + 1)
+  
+  const formatOpts: Intl.DateTimeFormatOptions = { day: '2-digit', month: 'short', year: 'numeric' }
+  return `${start.toLocaleDateString('id-ID', formatOpts)} s/d ${end.toLocaleDateString('id-ID', formatOpts)}`
+}
+
 export default function RegistrationDetailModal({ reg, onClose, role }: Props) {
   const qc = useQueryClient()
   const [mode, setMode] = useState<ActionMode>(null)
@@ -302,6 +314,27 @@ export default function RegistrationDetailModal({ reg, onClose, role }: Props) {
     queryKey: ['next-customer-number', reg.ID],
     queryFn: () => csApi.getNextCustomerNumber(reg.ID),
     enabled: mode === 'activate',
+  })
+
+  // Live PPPoE active connections monitoring query
+  const { data: activeConns } = useQuery({
+    queryKey: ['active-pppoe-conns', reg.ID],
+    queryFn: async () => {
+      try {
+        const configs = await ownerApi.getMikrotikConfigs()
+        if (configs && configs.length > 0) {
+          const activeM = configs.find((m) => m.is_active) || configs[0]
+          if (activeM) {
+            return await ownerApi.getMikrotikActiveConnections(activeM.id)
+          }
+        }
+      } catch (e) {
+        // Router might be offline / unreachable
+      }
+      return []
+    },
+    refetchInterval: 10000,
+    enabled: Boolean(reg.PPPoEUsername),
   })
 
   const selectedPkg = packages?.find((p: any) => p.ID === reg.PackageID)
@@ -961,61 +994,129 @@ export default function RegistrationDetailModal({ reg, onClose, role }: Props) {
           )}
 
           {/* Provisioning */}
-          {(reg.PPPoEUsername || reg.ONTSerialNumber || reg.ODPInfo || reg.CustomerNumber) && (
-            <section>
-              <h4 className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-3">Provisioning & Lapangan</h4>
-              <div className="grid grid-cols-2 gap-2.5">
-                {reg.CustomerNumber && (
-                  <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl px-4 py-3">
-                    <p className="text-[10px] text-slate-400 uppercase tracking-wide mb-0.5">Nomor Pelanggan</p>
-                    <p className="text-sm font-mono font-semibold text-slate-800 dark:text-slate-100">{reg.CustomerNumber}</p>
-                  </div>
-                )}
-                {reg.PPPoEUsername && (
-                  <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl px-4 py-3">
-                    <p className="text-[10px] text-slate-400 uppercase tracking-wide mb-0.5">PPPoE Username</p>
-                    <p className="text-sm font-mono font-semibold text-slate-800 dark:text-slate-100">{reg.PPPoEUsername}</p>
-                  </div>
-                )}
-                {reg.PPPoEPassword && (
-                  <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl px-4 py-3">
-                    <p className="text-[10px] text-slate-400 uppercase tracking-wide mb-0.5">PPPoE Password</p>
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm font-mono font-semibold text-slate-800 dark:text-slate-100">
-                        {showDetailPassword ? reg.PPPoEPassword : '••••••••'}
-                      </p>
-                      <button
-                        type="button"
-                        onClick={() => setShowDetailPassword(!showDetailPassword)}
-                        className="text-slate-400 hover:text-slate-600 dark:hover:text-white"
-                        title={showDetailPassword ? "Sembunyikan password" : "Lihat password"}
-                      >
-                        {showDetailPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                      </button>
+          {(reg.PPPoEUsername || reg.ONTSerialNumber || reg.ODPInfo || reg.CustomerNumber) && (() => {
+            const connInfo = (activeConns || []).find(
+              (c: any) => (c.name || c.Name || '').toLowerCase() === (reg.PPPoEUsername || '').toLowerCase()
+            )
+            const liveIP = connInfo ? (connInfo.address || connInfo.Address || '-') : '-'
+            const liveUptime = connInfo ? (connInfo.uptime || connInfo.Uptime || '-') : '-'
+            
+            const isIsolir = reg.Status === 'isolir'
+            const isOnline = Boolean(reg.Status === 'active' && connInfo)
+            const isOffline = Boolean(reg.Status === 'active' && !connInfo)
+            
+            return (
+              <section>
+                <h4 className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-3">Provisioning & Detail Layanan</h4>
+                <div className="grid grid-cols-2 gap-2.5">
+                  {reg.CustomerNumber && (
+                    <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl px-4 py-3">
+                      <p className="text-[10px] text-slate-400 uppercase tracking-wide mb-0.5">Nomor Pelanggan</p>
+                      <p className="text-sm font-mono font-semibold text-slate-800 dark:text-slate-100">{reg.CustomerNumber}</p>
                     </div>
-                  </div>
-                )}
-                {reg.ONTSerialNumber && (
-                  <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl px-4 py-3">
-                    <p className="text-[10px] text-slate-400 uppercase tracking-wide mb-0.5">ONT Serial</p>
-                    <p className="text-sm font-mono font-semibold text-slate-800 dark:text-slate-100">{reg.ONTSerialNumber}</p>
-                  </div>
-                )}
-                {reg.ODPInfo && (
-                  <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl px-4 py-3 col-span-2">
-                    <p className="text-[10px] text-slate-400 uppercase tracking-wide mb-0.5">Informasi ODP</p>
-                    <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">{reg.ODPInfo}</p>
-                  </div>
-                )}
-                {reg.MapsLat && reg.MapsLng && (
-                  <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl px-4 py-3 col-span-2">
-                    <p className="text-[10px] text-slate-400 uppercase tracking-wide mb-0.5">Koordinat Akurat Lapangan</p>
-                    <p className="text-sm font-mono font-semibold text-slate-800 dark:text-slate-100">{reg.MapsLat}, {reg.MapsLng}</p>
-                  </div>
-                )}
-              </div>
-            </section>
-          )}
+                  )}
+                  {reg.PPPoEUsername && (
+                    <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl px-4 py-3">
+                      <p className="text-[10px] text-slate-400 uppercase tracking-wide mb-0.5">Status Internet</p>
+                      <div className="flex items-center gap-1.5 mt-1">
+                        {isIsolir ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-600 dark:text-amber-400">
+                            <ShieldAlert className="w-3 h-3" /> Isolir (Offline)
+                          </span>
+                        ) : isOnline ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-600 dark:text-emerald-400" title={`Uptime: ${liveUptime}`}>
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> Online
+                          </span>
+                        ) : isOffline ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-rose-500/20 text-rose-600 dark:text-rose-450">
+                            <span className="w-1.5 h-1.5 rounded-full bg-rose-500" /> Offline / LOS
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-slate-500/20 text-slate-600 dark:text-slate-400">
+                            {reg.Status}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  {reg.PPPoEUsername && (
+                    <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl px-4 py-3">
+                      <p className="text-[10px] text-slate-400 uppercase tracking-wide mb-0.5">PPPoE Username</p>
+                      <p className="text-sm font-mono font-semibold text-slate-800 dark:text-slate-100">{reg.PPPoEUsername}</p>
+                    </div>
+                  )}
+                  {reg.PPPoEPassword && (
+                    <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl px-4 py-3">
+                      <p className="text-[10px] text-slate-400 uppercase tracking-wide mb-0.5">PPPoE Password</p>
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-mono font-semibold text-slate-800 dark:text-slate-100">
+                          {showDetailPassword ? reg.PPPoEPassword : '••••••••'}
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => setShowDetailPassword(!showDetailPassword)}
+                          className="text-slate-400 hover:text-slate-600 dark:hover:text-white"
+                          title={showDetailPassword ? "Sembunyikan password" : "Lihat password"}
+                        >
+                          {showDetailPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                  {reg.PPPoEUsername && (
+                    <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl px-4 py-3 col-span-2">
+                      <p className="text-[10px] text-slate-400 uppercase tracking-wide mb-0.5 flex items-center gap-1">
+                        <Server className="w-3.5 h-3.5 text-slate-400" /> IP Address (Mikrotik)
+                      </p>
+                      <p className="text-sm font-mono font-semibold text-slate-800 dark:text-slate-100 mt-0.5">{liveIP}</p>
+                    </div>
+                  )}
+                  {reg.CreatedAt && (
+                    <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl px-4 py-3">
+                      <p className="text-[10px] text-slate-400 uppercase tracking-wide mb-0.5 flex items-center gap-1">
+                        <Calendar className="w-3.5 h-3.5 text-slate-400" /> Tanggal Registrasi
+                      </p>
+                      <p className="text-sm font-medium text-slate-800 dark:text-slate-100">{formatDateTime(reg.CreatedAt)}</p>
+                    </div>
+                  )}
+                  {reg.ActivatedAt && (
+                    <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl px-4 py-3">
+                      <p className="text-[10px] text-slate-400 uppercase tracking-wide mb-0.5 flex items-center gap-1">
+                        <Calendar className="w-3.5 h-3.5 text-slate-400" /> Tanggal Aktivasi
+                      </p>
+                      <p className="text-sm font-medium text-slate-800 dark:text-slate-100">{formatDateTime(reg.ActivatedAt)}</p>
+                    </div>
+                  )}
+                  {reg.ActivatedAt && (
+                    <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl px-4 py-3 col-span-2">
+                      <p className="text-[10px] text-slate-400 uppercase tracking-wide mb-0.5 flex items-center gap-1">
+                        <Clock className="w-3.5 h-3.5 text-slate-400" /> Masa Aktif Layanan (Bulanan)
+                      </p>
+                      <p className="text-sm font-medium text-slate-800 dark:text-slate-100 mt-0.5">{getMasaAktif(reg.ActivatedAt)}</p>
+                    </div>
+                  )}
+                  {reg.ONTSerialNumber && (
+                    <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl px-4 py-3">
+                      <p className="text-[10px] text-slate-400 uppercase tracking-wide mb-0.5">ONT Serial</p>
+                      <p className="text-sm font-mono font-semibold text-slate-800 dark:text-slate-100">{reg.ONTSerialNumber}</p>
+                    </div>
+                  )}
+                  {reg.ODPInfo && (
+                    <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl px-4 py-3 col-span-2">
+                      <p className="text-[10px] text-slate-400 uppercase tracking-wide mb-0.5">Informasi ODP</p>
+                      <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">{reg.ODPInfo}</p>
+                    </div>
+                  )}
+                  {reg.MapsLat && reg.MapsLng && (
+                    <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl px-4 py-3 col-span-2">
+                      <p className="text-[10px] text-slate-400 uppercase tracking-wide mb-0.5">Koordinat Akurat Lapangan</p>
+                      <p className="text-sm font-mono font-semibold text-slate-800 dark:text-slate-100">{reg.MapsLat}, {reg.MapsLng}</p>
+                    </div>
+                  )}
+                </div>
+              </section>
+            )
+          })()}
 
           {/* Provisioning Logs */}
           {provLogs.length > 0 && (

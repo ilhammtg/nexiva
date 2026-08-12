@@ -56,3 +56,15 @@
   * { @apply border-border; }
   body { @apply bg-background text-foreground font-sans antialiased; }
 }
+
+/* Custom map layout overrides for mobile drawer open state */
+@media (max-width: 767px) {
+  .mobile-drawer-open .leaflet-bottom.leaflet-right {
+    bottom: calc(45vh + 12px) !important;
+  }
+}
+
+.leaflet-bottom.leaflet-right {
+  transition: bottom 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+

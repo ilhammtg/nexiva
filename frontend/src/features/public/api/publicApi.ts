@@ -51,6 +51,10 @@ export const publicApi = {
     invoice_tax_rate?: string
     invoice_payment_instructions?: string
     wa_system_number?: string
+    brand_primary_color?: string
+    brand_secondary_color?: string
+    brand_accent_color?: string
+    brand_favicon_url?: string
   }> => {
     const res = await api.get('/public-configs')
     return res.data.data ?? {
@@ -68,6 +72,10 @@ export const publicApi = {
       website_contact_email: '',
       website_address: '',
       role_permissions: '',
+      brand_primary_color: '#2563eb',
+      brand_secondary_color: '#4f46e5',
+      brand_accent_color: '#f59e0b',
+      brand_favicon_url: '',
     }
   },
   getPublicRegistration: async (id: string): Promise<any> => {
@@ -93,6 +101,10 @@ export const publicApi = {
     const response = await fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/villages/${districtId}.json`)
     const json = await response.json()
     return json ?? []
+  },
+  getPublicODPs: async (): Promise<any[]> => {
+    const res = await api.get('/public-odps')
+    return res.data.data ?? []
   },
 }
 

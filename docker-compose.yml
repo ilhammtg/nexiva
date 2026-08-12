@@ -9,7 +9,7 @@ services:
     env_file:
       - ./backend/.env
     ports:
-      - "8080:8080"
+      - "8085:8080"
     volumes:
       - ./backend/uploads:/app/uploads
     depends_on:
@@ -115,8 +115,11 @@ services:
 
 volumes:
   postgres_data:
+    name: isp-platform_postgres_data
   redis_data:
+    name: isp-platform_redis_data
   pgadmin_data:
+    name: isp-platform_pgadmin_data
 
 networks:
   isp_network:

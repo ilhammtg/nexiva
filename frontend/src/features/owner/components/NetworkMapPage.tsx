@@ -15,10 +15,17 @@ import {
   Cable,
   ExternalLink,
   Link as LinkIcon,
-  LocateFixed,
-  Navigation
+  Locate,
+  Layers,
+  Eye,
+  EyeOff,
+  Calendar,
+  Clock,
+  ShieldAlert,
+  Server
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { formatDateTime } from '@/lib/utils'
 
 declare global {
   interface Window {
@@ -51,6 +58,67 @@ function parseCoord(val: any): number {
   const num = parseFloat(str)
   return isNaN(num) ? 0 : num
 }
+
+// Helper to calculate active billing period
+function getMasaAktif(activatedAt: string | null): string {
+  if (!activatedAt) return '-'
+  const date = new Date(activatedAt)
+  const start = new Date(date)
+  const end = new Date(date)
+  end.setMonth(end.getMonth() + 1)
+  
+  const formatOpts: Intl.DateTimeFormatOptions = { day: '2-digit', month: 'short', year: 'numeric' }
+  return `${start.toLocaleDateString('id-ID', formatOpts)} s/d ${end.toLocaleDateString('id-ID', formatOpts)}`
+}
+
+const StreetMapPreview = () => (
+  <svg className="w-full h-full object-cover" viewBox="0 0 60 45" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect width="60" height="45" fill="#E8ECE9" />
+    <path d="M0 0C15 10 20 5 35 15C50 25 45 40 60 38V0H0Z" fill="#D2F1D2" />
+    <path d="M-5 45C10 38 25 35 32 25C40 12 45 5 65 -5" stroke="#AADAFF" strokeWidth="5" strokeLinecap="round" />
+    <line x1="30" y1="-5" x2="30" y2="50" stroke="#FFFFFF" strokeWidth="4" />
+    <line x1="30" y1="-5" x2="30" y2="50" stroke="#FFDE9E" strokeWidth="2.5" />
+    <line x1="-5" y1="20" x2="65" y2="20" stroke="#FFFFFF" strokeWidth="4" />
+    <line x1="-5" y1="20" x2="65" y2="20" stroke="#FFDE9E" strokeWidth="2.5" />
+    <circle cx="30" cy="20" r="3.5" fill="#EF4444" stroke="#FFFFFF" strokeWidth="1" />
+  </svg>
+)
+
+const SatelliteMapPreview = () => (
+  <svg className="w-full h-full object-cover" viewBox="0 0 60 45" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect width="60" height="45" fill="#132B14" />
+    <path d="M10 5C25 15 35 8 50 18C62 26 55 42 65 40V0H10Z" fill="#0A1C0B" />
+    <path d="M-5 45C10 38 25 35 32 25C40 12 45 5 65 -5" stroke="#003554" strokeWidth="5" strokeLinecap="round" />
+    <line x1="30" y1="-5" x2="30" y2="50" stroke="#E5E7EB" strokeWidth="1" strokeOpacity="0.7" />
+    <line x1="-5" y1="20" x2="65" y2="20" stroke="#E5E7EB" strokeWidth="1" strokeOpacity="0.7" />
+    <circle cx="30" cy="20" r="3.5" fill="#EF4444" stroke="#FFFFFF" strokeWidth="1" />
+  </svg>
+)
+
+const DarkMapPreview = () => (
+  <svg className="w-full h-full object-cover" viewBox="0 0 60 45" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect width="60" height="45" fill="#18181B" />
+    <path d="M-5 45C10 38 25 35 32 25C40 12 45 5 65 -5" stroke="#0C2340" strokeWidth="3" strokeLinecap="round" />
+    <line x1="30" y1="-5" x2="30" y2="50" stroke="#27272A" strokeWidth="2.5" />
+    <line x1="30" y1="-5" x2="30" y2="50" stroke="#3B82F6" strokeWidth="1" strokeOpacity="0.8" />
+    <line x1="-5" y1="20" x2="65" y2="20" stroke="#27272A" strokeWidth="2.5" />
+    <line x1="-5" y1="20" x2="65" y2="20" stroke="#3B82F6" strokeWidth="1" strokeOpacity="0.8" />
+    <circle cx="30" cy="20" r="3.5" fill="#60A5FA" stroke="#1D4ED8" strokeWidth="1" />
+  </svg>
+)
+
+const OSMMapPreview = () => (
+  <svg className="w-full h-full object-cover" viewBox="0 0 60 45" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect width="60" height="45" fill="#F4F3F0" />
+    <path d="M0 10C12 8 22 15 32 12C45 8 50 25 60 22V0H0Z" fill="#D8EBCE" />
+    <path d="M-5 45C10 38 25 35 32 25C40 12 45 5 65 -5" stroke="#AADAFF" strokeWidth="4" strokeLinecap="round" />
+    <line x1="30" y1="-5" x2="30" y2="50" stroke="#FFFFFF" strokeWidth="3" />
+    <line x1="30" y1="-5" x2="30" y2="50" stroke="#FBD07C" strokeWidth="1.5" />
+    <line x1="-5" y1="20" x2="65" y2="20" stroke="#FFFFFF" strokeWidth="3" />
+    <line x1="-5" y1="20" x2="65" y2="20" stroke="#FBD07C" strokeWidth="1.5" />
+    <circle cx="30" cy="20" r="3.5" fill="#EF4444" stroke="#FFFFFF" strokeWidth="1" />
+  </svg>
+)
 
 // Map Tile Layers
 const TILE_LAYERS = {
@@ -88,6 +156,7 @@ export function NetworkMapPage() {
 
   const [isLeafletLoaded, setIsLeafletLoaded] = useState(false)
   const [mapLayer, setMapLayer] = useState<'google_street' | 'google_hybrid' | 'carto_dark' | 'osm'>('google_street')
+  const [showLayerMenu, setShowLayerMenu] = useState(false)
   const [showCableLines, setShowCableLines] = useState(true)
   const [showCustomers, setShowCustomers] = useState(true)
   const [showODPs, setShowODPs] = useState(true)
@@ -100,6 +169,7 @@ export function NetworkMapPage() {
   const [selectedCustomer, setSelectedCustomer] = useState<Registration | null>(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [modalOpen, setModalOpen] = useState(false)
+  const [showMapPassword, setShowMapPassword] = useState(false)
 
   const [gmapsInput, setGmapsInput] = useState('')
 
@@ -163,6 +233,26 @@ export function NetworkMapPage() {
   const { data: oltPorts = [] } = useQuery({
     queryKey: ['olt-ports'],
     queryFn: ownerApi.getOLTPorts,
+  })
+
+  // Live PPPoE active connections monitoring query
+  const { data: activeConns } = useQuery({
+    queryKey: ['active-pppoe-conns'],
+    queryFn: async () => {
+      try {
+        const configs = await ownerApi.getMikrotikConfigs()
+        if (configs && configs.length > 0) {
+          const activeM = configs.find((m) => m.is_active) || configs[0]
+          if (activeM) {
+            return await ownerApi.getMikrotikActiveConnections(activeM.id)
+          }
+        }
+      } catch (e) {
+        // Router might be offline / unreachable
+      }
+      return []
+    },
+    refetchInterval: 10000,
   })
 
   // Mutations
@@ -270,6 +360,14 @@ export function NetworkMapPage() {
 
     mapInstanceRef.current = map
 
+    // ResizeObserver to invalidate map size automatically when container size changes
+    const resizeObserver = new ResizeObserver(() => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.invalidateSize()
+      }
+    })
+    resizeObserver.observe(container)
+
     setTimeout(() => {
       if (mapInstanceRef.current) {
         mapInstanceRef.current.invalidateSize()
@@ -278,6 +376,7 @@ export function NetworkMapPage() {
 
     return () => {
       container.removeEventListener('mouseleave', handleMouseLeave)
+      resizeObserver.disconnect()
       map.remove()
       mapInstanceRef.current = null
     }
@@ -328,14 +427,6 @@ export function NetworkMapPage() {
     }
   }, [odps, registrations])
 
-  // Locate Bireuen Town Center
-  const handleFlyToBireuen = () => {
-    if (mapInstanceRef.current) {
-      mapInstanceRef.current.flyTo(BIREUEN_CENTER, 14, { duration: 1.2 })
-      toast.success('Peta berpusat pada Kota Bireuen, Aceh')
-    }
-  }
-
   // Locate User GPS Handler
   const handleLocateUser = () => {
     if (!('geolocation' in navigator)) {
@@ -352,9 +443,11 @@ export function NetworkMapPage() {
         }
         toast.success('Berhasil terhubung ke lokasi perangkat Anda!')
       },
-      (err) => {
-        toast.error('Gagal mengambil lokasi. Mengalihkan ke Bireuen, Aceh.')
-        handleFlyToBireuen()
+      () => {
+        toast.error('Gagal mengambil lokasi. Mengalihkan ke pusat peta jaringan.')
+        if (mapInstanceRef.current) {
+          mapInstanceRef.current.flyTo(defaultCenter, 14, { duration: 1.2 })
+        }
       },
       { enableHighAccuracy: true, timeout: 8000 }
     )
@@ -401,35 +494,33 @@ export function NetworkMapPage() {
       if (odp.latitude === 0 || odp.longitude === 0) return
 
       const percent = odp.total_ports > 0 ? (odp.used_ports / odp.total_ports) * 100 : 0
-      let badgeBg = 'bg-emerald-500 text-white'
-      let borderColor = 'border-emerald-500'
+      let ringColor = '#6366f1' // Indigo default for general ODPs
       if (percent >= 100) {
-        badgeBg = 'bg-rose-600 text-white'
-        borderColor = 'border-rose-600'
+        ringColor = '#ef4444' // Red when fully loaded
       } else if (percent >= 75) {
-        badgeBg = 'bg-amber-500 text-white'
-        borderColor = 'border-amber-500'
+        ringColor = '#f97316' // Orange when close to full
       }
-
-      // Pulsing ring color based on load
-      const ringColor = percent >= 100 ? '#f43f5e' : percent >= 75 ? '#f59e0b' : '#10b981'
 
       const customIcon = L.divIcon({
         className: 'custom-odp-marker',
         html: `
-          <div class="relative flex flex-col items-center cursor-pointer group" style="filter: drop-shadow(0 2px 8px ${ringColor}66)">
-            <div class="px-2.5 py-1 rounded-lg ${badgeBg} text-[10px] font-bold shadow-lg border-2 ${borderColor} flex items-center gap-1.5 whitespace-nowrap transition-transform group-hover:scale-110 group-hover:shadow-xl">
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
-              ${odp.code} (${odp.used_ports}/${odp.total_ports})
+          <div class="relative flex flex-col items-center cursor-pointer group" style="filter: drop-shadow(0 4px 10px ${ringColor}44)">
+            <div class="px-2.5 py-1.5 rounded-xl bg-slate-950/90 text-white text-[11px] font-semibold border border-slate-700 flex items-center gap-1.5 whitespace-nowrap shadow-xl transition-all duration-200 group-hover:scale-105 group-hover:border-slate-500">
+              <div class="w-2 h-2 rounded-full animate-pulse" style="background: ${ringColor}; box-shadow: 0 0 6px ${ringColor}"></div>
+              <span class="tracking-wide text-slate-200 font-bold">${odp.code}</span>
+              <span class="text-[9px] text-slate-400 bg-slate-800 px-1.5 py-0.5 rounded-md font-mono">${odp.used_ports}/${odp.total_ports}</span>
             </div>
-            <div class="relative -mt-0.5 flex items-center justify-center">
-              <div style="width:20px;height:20px;border-radius:50%;background:${ringColor}22;border:2px solid ${ringColor}55;animation:ping 1.5s cubic-bezier(0,0,0.2,1) infinite;position:absolute"></div>
-              <div style="width:10px;height:10px;background:${ringColor};border:2px solid white;border-radius:50%;box-shadow:0 0 8px ${ringColor}88;position:relative;z-index:1"></div>
+            <div class="w-0.5 h-1.5 bg-slate-700"></div>
+            <div class="relative flex items-center justify-center">
+              <div style="width:24px;height:24px;border-radius:50%;background:${ringColor}15;border:1.5px solid ${ringColor}44;animation:ping 2s cubic-bezier(0,0,0.2,1) infinite;position:absolute"></div>
+              <div class="w-3.5 h-3.5 bg-slate-900 border-2 border-white rounded-full flex items-center justify-center shadow-md z-10" style="border-color: ${ringColor}">
+                <div class="w-1.5 h-1.5 rounded-full" style="background: ${ringColor}"></div>
+              </div>
             </div>
           </div>
         `,
-        iconSize: [100, 40],
-        iconAnchor: [50, 38],
+        iconSize: [100, 48],
+        iconAnchor: [50, 42],
       })
 
       const marker = L.marker([odp.latitude, odp.longitude], { icon: customIcon })
@@ -473,33 +564,35 @@ export function NetworkMapPage() {
     filteredCustomers.forEach((cust) => {
       if (!cust.MapsLat || !cust.MapsLng) return
 
-      let colorClass = 'bg-blue-600 border-blue-400'
-      if (['active', 'provisioned'].includes(cust.Status)) {
-        colorClass = 'bg-emerald-600 border-emerald-400'
-      } else if (['isolated', 'suspended', 'rejected'].includes(cust.Status)) {
-        colorClass = 'bg-rose-600 border-rose-400'
-      } else if (['waiting_payment', 'pending_review'].includes(cust.Status)) {
-        colorClass = 'bg-amber-500 border-amber-300'
+      const connInfo = (activeConns || []).find(
+        (c: any) => (c.name || c.Name || '').toLowerCase() === (cust.PPPoEUsername || '').toLowerCase()
+      )
+      const isOnline = Boolean(cust.Status === 'active' && connInfo)
+
+      let colorClass = 'bg-rose-500 border-rose-300' // Red for Offline / LOS / Isolir / Pending / Survey
+      let dotGlowColor = '#ef4444'
+
+      if (isOnline) {
+        colorClass = 'bg-emerald-500 border-emerald-300' // Green / Hidup / Online
+        dotGlowColor = '#10b981'
       }
 
-      const isActiveCust = ['active', 'provisioned'].includes(cust.Status)
-      const pulseAnim = isActiveCust
+      const pulseAnim = isOnline
         ? 'animation:ping 2s cubic-bezier(0,0,0.2,1) infinite;'
         : ''
-      const dotGlowColor = isActiveCust ? '#10b981' : colorClass.includes('amber') ? '#f59e0b' : colorClass.includes('rose') ? '#f43f5e' : '#6366f1'
 
       const customIcon = L.divIcon({
         className: 'custom-customer-marker',
         html: `
-          <div class="relative flex flex-col items-center group cursor-pointer" style="filter:drop-shadow(0 2px 6px ${dotGlowColor}66)">
-            <div class="w-6 h-6 rounded-full ${colorClass} border-2 text-white flex items-center justify-center shadow-lg transition-transform group-hover:scale-125" style="box-shadow:0 0 10px ${dotGlowColor}66">
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          <div class="relative flex flex-col items-center group cursor-pointer" style="filter:drop-shadow(0 2px 8px ${dotGlowColor}66)">
+            <div class="w-7 h-7 rounded-full ${colorClass} border-2 text-white flex items-center justify-center shadow-lg transition-all duration-200 group-hover:scale-115" style="box-shadow:0 0 12px ${dotGlowColor}55">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
             </div>
-            ${isActiveCust ? `<div style="position:absolute;top:-2px;left:-2px;width:28px;height:28px;border-radius:50%;border:2px solid ${dotGlowColor};opacity:0.6;${pulseAnim}"></div>` : ''}
+            ${isOnline ? `<div style="position:absolute;top:-2px;left:-2px;width:32px;height:32px;border-radius:50%;border:2px solid ${dotGlowColor};opacity:0.6;${pulseAnim}"></div>` : ''}
           </div>
         `,
-        iconSize: [28, 28],
-        iconAnchor: [14, 14],
+        iconSize: [32, 32],
+        iconAnchor: [16, 16],
       })
 
       const marker = L.marker([cust.MapsLat, cust.MapsLng], { icon: customIcon })
@@ -510,7 +603,7 @@ export function NetworkMapPage() {
       })
       group.addLayer(marker)
     })
-  }, [filteredCustomers, showCustomers, isLeafletLoaded])
+  }, [filteredCustomers, showCustomers, isLeafletLoaded, activeConns])
 
   // Inject CSS animations for fiber lines (once)
   useEffect(() => {
@@ -543,11 +636,18 @@ export function NetworkMapPage() {
       .fiber-line-inactive {
         animation: fiber-flow-slow 1.2s linear infinite;
       }
+      .fiber-line-offline {
+        stroke-dasharray: 6, 6;
+        animation: fiber-pulse 3.5s ease-in-out infinite;
+      }
       .fiber-dot-active {
         animation: dot-travel 3.5s linear infinite;
       }
       .fiber-dot-inactive {
         animation: dot-travel 8s linear infinite;
+      }
+      .fiber-dot-offline {
+        display: none;
       }
       /* Remove default Leaflet marker shadow/border */
       .custom-odp-marker, .custom-customer-marker {
@@ -575,23 +675,37 @@ export function NetworkMapPage() {
       if (!reg.MapsLat || !reg.MapsLng) return
 
       // Match ODP by ODPInfo code, or by shared OLTPortConfigID as fallback
-      const odp = odps.find((o) => {
+      let odp = odps.find((o) => {
         if (reg.ODPInfo) {
-          const ri = reg.ODPInfo.toLowerCase()
-          if (o.code.toLowerCase() === ri) return true
-          // prefix match e.g. "ODP-PSN-01/P1" → "ODP-PSN-01"
-          if (ri.startsWith(o.code.toLowerCase())) return true
+          const ri = reg.ODPInfo.trim().toLowerCase()
+          const oc = o.code.trim().toLowerCase()
+          return ri === oc || ri.startsWith(oc + '/') || ri.startsWith(oc + '-') || ri.startsWith(oc + ' ')
         }
-        // fallback: same OLT port
-        if (reg.OLTPortConfigID && o.olt_port_config_id === reg.OLTPortConfigID) return true
         return false
       })
+      if (!odp) {
+        odp = odps.find((o) => reg.OLTPortConfigID && o.olt_port_config_id === reg.OLTPortConfigID)
+      }
       if (!odp || odp.latitude === 0 || odp.longitude === 0) return
 
-      const isActive = reg.Status === 'active'
-      const lineColor = isActive ? '#10b981' : '#6366f1'   // emerald or indigo
-      const glowColor = isActive ? '#34d399' : '#818cf8'
-      const dotColor  = isActive ? '#f0fdf4' : '#eef2ff'
+      const connInfo = (activeConns || []).find(
+        (c: any) => (c.name || c.Name || '').toLowerCase() === (reg.PPPoEUsername || '').toLowerCase()
+      )
+      const isOnline = Boolean(reg.Status === 'active' && connInfo)
+
+      let lineColor = '#ef4444'     // red default for non-online (LOS / offline / isolir)
+      let glowColor = '#f87171'
+      let dotColor  = '#fef2f2'
+      let lineClass = 'fiber-line-offline'
+      let dotClass  = 'fiber-dot-offline'
+
+      if (isOnline) {
+        lineColor = '#06b6d4'     // vibrant cyan for online (replaces green)
+        glowColor = '#22d3ee'
+        dotColor  = '#ecfeff'
+        lineClass = 'fiber-line-active'
+        dotClass  = 'fiber-dot-active'
+      }
 
       // ── Main animated polyline (dashed flow) ─────────────────────────────
       const mainLine = L.polyline(
@@ -601,7 +715,7 @@ export function NetworkMapPage() {
           weight: 2.5,
           opacity: 0.85,
           dashArray: '8, 6',
-          className: isActive ? 'fiber-line-active' : 'fiber-line-inactive',
+          className: lineClass,
         }
       )
       group.addLayer(mainLine)
@@ -640,7 +754,7 @@ export function NetworkMapPage() {
           weight: 4,
           opacity: 1,
           dashArray: `4 ${Math.max(pathLen - 4, 10)}`,
-          className: isActive ? 'fiber-dot-active' : 'fiber-dot-inactive',
+          className: dotClass,
         }
       )
       group.addLayer(dotLine)
@@ -655,7 +769,7 @@ export function NetworkMapPage() {
         setDrawerOpen(true)
       })
     })
-  }, [registrations, odps, showCableLines, isLeafletLoaded])
+  }, [registrations, odps, showCableLines, isLeafletLoaded, activeConns])
 
   // Fly To Helper
   const flyToLocation = (lat: number, lng: number) => {
@@ -729,142 +843,126 @@ export function NetworkMapPage() {
   const connectedCustomersToSelectedODP = useMemo(() => {
     if (!selectedODP) return []
     return registrations.filter(
-      (r) => r.ODPInfo?.toLowerCase() === selectedODP.code.toLowerCase() || r.ODPInfo?.toLowerCase() === selectedODP.name.toLowerCase()
+      (r) => {
+        if (!r.ODPInfo) return false
+        const ri = r.ODPInfo.trim().toLowerCase()
+        const oc = selectedODP.code.trim().toLowerCase()
+        const on = selectedODP.name.trim().toLowerCase()
+        return ri === oc || ri === on || ri.startsWith(oc + '/') || ri.startsWith(oc + '-') || ri.startsWith(oc + ' ') || ri.startsWith(on + '/') || ri.startsWith(on + '-') || ri.startsWith(on + ' ')
+      }
     )
   }, [selectedODP, registrations])
 
   return (
-    <div className="flex flex-col h-[calc(100vh-4rem)] bg-slate-50 dark:bg-zinc-950 text-slate-900 dark:text-zinc-100 overflow-hidden relative font-sans">
+    <div className="flex flex-col h-full w-full bg-slate-50 dark:bg-zinc-950 text-slate-900 dark:text-zinc-100 overflow-hidden relative font-sans">
       {/* ── UNIFIED SLIM TOP BAR (LIGHT / DARK THEMED) ──────────────────────────── */}
-      <div className="bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md border-b border-slate-200 dark:border-zinc-800 px-4 py-2.5 z-20 flex flex-wrap items-center justify-between gap-3 shadow-sm transition-colors">
+      <div className="bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md border-b border-slate-200 dark:border-zinc-800 p-3 md:px-4 md:py-2.5 z-20 flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-sm transition-colors">
         {/* Title & Quick Stats */}
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-blue-50 dark:bg-blue-600/20 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-500/30 rounded-lg">
-            <Compass className="w-4 h-4" />
-          </div>
-          <div>
-            <h1 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              Peta Sebaran Jaringan & ODP
-            </h1>
-            <div className="flex items-center gap-3 text-[11px] text-slate-500 dark:text-zinc-400 mt-0.5">
-              <span>ODP: <strong className="text-amber-600 dark:text-amber-400">{odps.length}</strong></span>
-              <span>•</span>
-              <span>Pelanggan Mapped: <strong className="text-emerald-600 dark:text-emerald-400">{filteredCustomers.length}</strong></span>
+        <div className="flex items-center justify-between w-full md:w-auto gap-3">
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 bg-blue-50 dark:bg-blue-600/20 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-500/30 rounded-lg flex-shrink-0">
+              <Compass className="w-4 h-4" />
+            </div>
+            <div>
+              <h1 className="text-xs md:text-sm font-bold text-slate-900 dark:text-white leading-tight">
+                Peta Sebaran Jaringan & ODP
+              </h1>
+              <div className="flex items-center gap-2 text-[10px] md:text-[11px] text-slate-500 dark:text-zinc-400 mt-0.5">
+                <span>ODP: <strong className="text-amber-600 dark:text-amber-400">{odps.length}</strong></span>
+                <span>•</span>
+                <span>Mapped: <strong className="text-emerald-600 dark:text-emerald-400">{filteredCustomers.length}</strong></span>
+              </div>
             </div>
           </div>
+
+          {/* Add ODP Button (Mobile Only) */}
+          <button
+            onClick={() => setIsAddMode(!isAddMode)}
+            className={`md:hidden px-2.5 py-1.5 rounded-lg text-[11px] font-bold flex items-center gap-1 border transition-all ${
+              isAddMode
+                ? 'bg-amber-500 hover:bg-amber-600 text-zinc-950 border-amber-400'
+                : 'bg-blue-600 hover:bg-blue-700 text-white border-blue-500 shadow-xs'
+            }`}
+          >
+            {isAddMode ? <X className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
+            {isAddMode ? 'Batal' : '+ ODP'}
+          </button>
         </div>
 
-        {/* Center Search Input */}
-        <div className="relative w-72">
-          <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-400 dark:text-zinc-400" />
-          <input
-            type="text"
-            placeholder="Cari ODP atau Pelanggan..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-slate-100 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-800 rounded-xl pl-8 pr-7 py-1.5 text-xs text-slate-900 dark:text-zinc-100 placeholder-slate-400 dark:placeholder-zinc-500 focus:outline-none focus:border-blue-500 transition-colors"
-          />
-          {searchQuery && (
-            <button onClick={() => setSearchQuery('')} className="absolute right-2.5 top-2.5 text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300">
-              <X className="w-3.5 h-3.5" />
-            </button>
-          )}
-
-          {/* Search Dropdown Results */}
-          {searchQuery && (
-            <div className="absolute top-10 left-0 right-0 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl shadow-2xl z-50 max-h-64 overflow-y-auto p-1.5 space-y-1 text-xs">
-              {filteredODPs.length > 0 && (
-                <div>
-                  <div className="text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase px-2 py-1">ODP ({filteredODPs.length})</div>
-                  {filteredODPs.map((odp) => (
-                    <div
-                      key={odp.id}
-                      onClick={() => {
-                        setSelectedODP(odp)
-                        setSelectedCustomer(null)
-                        setDrawerOpen(true)
-                        flyToLocation(odp.latitude, odp.longitude)
-                        setSearchQuery('')
-                      }}
-                      className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-zinc-800 cursor-pointer flex items-center justify-between text-slate-800 dark:text-zinc-200"
-                    >
-                      <span className="font-semibold text-amber-600 dark:text-amber-400">{odp.code}</span>
-                      <span className="text-[10px] text-slate-500 dark:text-zinc-400">{odp.used_ports}/{odp.total_ports} Port</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {filteredCustomers.length > 0 && (
-                <div>
-                  <div className="text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase px-2 py-1 border-t border-slate-200 dark:border-zinc-800 pt-1 mt-1">Pelanggan ({filteredCustomers.length})</div>
-                  {filteredCustomers.map((cust) => (
-                    <div
-                      key={cust.ID}
-                      onClick={() => {
-                        setSelectedCustomer(cust)
-                        setSelectedODP(null)
-                        setDrawerOpen(true)
-                        if (cust.MapsLat && cust.MapsLng) flyToLocation(cust.MapsLat, cust.MapsLng)
-                        setSearchQuery('')
-                      }}
-                      className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-zinc-800 cursor-pointer flex items-center justify-between text-slate-800 dark:text-zinc-200"
-                    >
-                      <span className="font-medium text-emerald-600 dark:text-emerald-400">{cust.FullName}</span>
-                      <span className="text-[10px] text-slate-500 dark:text-zinc-500">{cust.CustomerNumber || cust.RegNumber}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {filteredODPs.length === 0 && filteredCustomers.length === 0 && (
-                <div className="p-3 text-center text-xs text-slate-400 dark:text-zinc-500">Tidak ada hasil ditemukan</div>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Controls Toolbar Right */}
-        <div className="flex items-center gap-2">
-          {/* Preset Bireuen Button */}
-          <button
-            onClick={handleFlyToBireuen}
-            className="px-2.5 py-1.5 rounded-xl bg-slate-100 dark:bg-zinc-950 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 border border-slate-200 dark:border-zinc-800 text-xs font-semibold flex items-center gap-1.5 transition-all shadow-xs"
-            title="Pusatkan Peta ke Kota Bireuen, Aceh"
-          >
-            <Navigation className="w-3.5 h-3.5" />
-            <span>Bireuen</span>
-          </button>
-
-          {/* Locate GPS Button */}
-          <button
-            onClick={handleLocateUser}
-            className="px-2.5 py-1.5 rounded-xl bg-slate-100 dark:bg-zinc-950 hover:bg-blue-50 dark:hover:bg-blue-900/30 text-blue-600 dark:text-blue-400 border border-slate-200 dark:border-zinc-800 text-xs font-semibold flex items-center gap-1.5 transition-all shadow-xs"
-            title="Pusatkan Peta ke Lokasi Perangkat Saya"
-          >
-            <LocateFixed className="w-3.5 h-3.5" />
-            <span>GPS Saya</span>
-          </button>
-
-          {/* Map Layer Switcher Pills */}
-          <div className="flex items-center bg-slate-100 dark:bg-zinc-950 p-1 rounded-xl border border-slate-200 dark:border-zinc-800 gap-1 text-[11px]">
-            {(['google_street', 'google_hybrid', 'carto_dark', 'osm'] as const).map((layerKey) => (
-              <button
-                key={layerKey}
-                onClick={() => setMapLayer(layerKey)}
-                className={`px-2.5 py-1 rounded-lg font-medium transition-all ${
-                  mapLayer === layerKey
-                    ? 'bg-blue-600 text-white font-semibold shadow-xs'
-                    : 'text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-200'
-                }`}
-              >
-                {TILE_LAYERS[layerKey].name}
+        {/* Search & Controls Wrapper */}
+        <div className="flex items-center gap-2 w-full md:w-auto">
+          {/* Center Search Input */}
+          <div className="relative flex-1 md:w-64 lg:w-80">
+            <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-400 dark:text-zinc-400" />
+            <input
+              type="text"
+              placeholder="Cari ODP atau Pelanggan..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-slate-100 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-800 rounded-xl pl-8 pr-7 py-1.5 text-xs text-slate-900 dark:text-zinc-100 placeholder-slate-400 dark:placeholder-zinc-500 focus:outline-none focus:border-blue-500 transition-colors"
+            />
+            {searchQuery && (
+              <button onClick={() => setSearchQuery('')} className="absolute right-2.5 top-2.5 text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300">
+                <X className="w-3.5 h-3.5" />
               </button>
-            ))}
+            )}
+
+            {/* Search Dropdown Results */}
+            {searchQuery && (
+              <div className="absolute top-10 left-0 right-0 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl shadow-2xl z-50 max-h-64 overflow-y-auto p-1.5 space-y-1 text-xs">
+                {filteredODPs.length > 0 && (
+                  <div>
+                    <div className="text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase px-2 py-1">ODP ({filteredODPs.length})</div>
+                    {filteredODPs.map((odp) => (
+                      <div
+                        key={odp.id}
+                        onClick={() => {
+                          setSelectedODP(odp)
+                          setSelectedCustomer(null)
+                          setDrawerOpen(true)
+                          flyToLocation(odp.latitude, odp.longitude)
+                          setSearchQuery('')
+                        }}
+                        className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-zinc-800 cursor-pointer flex items-center justify-between text-slate-800 dark:text-zinc-200"
+                      >
+                        <span className="font-semibold text-amber-600 dark:text-amber-400">{odp.code}</span>
+                        <span className="text-[10px] text-slate-500 dark:text-zinc-400">{odp.used_ports}/{odp.total_ports} Port</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {filteredCustomers.length > 0 && (
+                  <div>
+                    <div className="text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase px-2 py-1 border-t border-slate-200 dark:border-zinc-800 pt-1 mt-1">Pelanggan ({filteredCustomers.length})</div>
+                    {filteredCustomers.map((cust) => (
+                      <div
+                        key={cust.ID}
+                        onClick={() => {
+                          setSelectedCustomer(cust)
+                          setSelectedODP(null)
+                          setDrawerOpen(true)
+                          if (cust.MapsLat && cust.MapsLng) flyToLocation(cust.MapsLat, cust.MapsLng)
+                          setSearchQuery('')
+                        }}
+                        className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-zinc-800 cursor-pointer flex items-center justify-between text-slate-800 dark:text-zinc-200"
+                      >
+                        <span className="font-medium text-emerald-600 dark:text-emerald-400">{cust.FullName}</span>
+                        <span className="text-[10px] text-slate-500 dark:text-zinc-500">{cust.CustomerNumber || cust.RegNumber}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {filteredODPs.length === 0 && filteredCustomers.length === 0 && (
+                  <div className="p-3 text-center text-xs text-slate-400 dark:text-zinc-500">Tidak ada hasil ditemukan</div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Quick Visibility Toggles */}
-          <div className="flex items-center bg-slate-100 dark:bg-zinc-950 p-1 rounded-xl border border-slate-200 dark:border-zinc-800 gap-1">
+          <div className="flex items-center bg-slate-100 dark:bg-zinc-950 p-1 rounded-xl border border-slate-200 dark:border-zinc-800 gap-1 flex-shrink-0">
             <button
               onClick={() => setShowODPs(!showODPs)}
               className={`p-1.5 rounded-lg text-xs transition-colors flex items-center gap-1.5 ${
@@ -894,10 +992,10 @@ export function NetworkMapPage() {
             </button>
           </div>
 
-          {/* Mode Add ODP Button */}
+          {/* Add ODP Button (Desktop Only) */}
           <button
             onClick={() => setIsAddMode(!isAddMode)}
-            className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 border transition-all ${
+            className={`hidden md:flex px-3 py-1.5 rounded-xl text-xs font-semibold items-center gap-1.5 border transition-all flex-shrink-0 ${
               isAddMode
                 ? 'bg-amber-500 hover:bg-amber-600 text-zinc-950 border-amber-400 animate-pulse'
                 : 'bg-blue-600 hover:bg-blue-700 text-white border-blue-500 shadow-xs'
@@ -928,13 +1026,84 @@ export function NetworkMapPage() {
       )}
 
       {/* ── MAIN MAP CANVAS CONTAINER ──────────────────────────── */}
-      <div className="flex-1 w-full relative z-0 min-h-[450px]">
+      <div className={`flex-1 w-full relative z-0 ${drawerOpen ? 'mobile-drawer-open' : ''}`}>
         <div ref={mapContainerRef} className="absolute inset-0 w-full h-full bg-slate-100 dark:bg-zinc-950" />
+
+        {/* Floating Google Maps-like Layer Selector */}
+        <div className={`absolute left-4 z-[1000] flex flex-col items-start transition-all duration-300 ${drawerOpen ? 'bottom-[47vh] md:bottom-5' : 'bottom-5'}`}>
+          {showLayerMenu ? (
+            <div className="bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md p-3 rounded-2xl shadow-2xl border border-slate-200/80 dark:border-zinc-800/80 flex flex-col gap-2.5 transition-all animate-in fade-in slide-in-from-bottom-2 duration-200">
+              <div className="flex items-center justify-between border-b border-slate-150 dark:border-zinc-850 pb-1.5 mb-1">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-zinc-500">Tampilan Peta</span>
+                <button
+                  onClick={() => setShowLayerMenu(false)}
+                  className="p-0.5 rounded-full hover:bg-slate-100 dark:hover:bg-zinc-800 text-slate-400 hover:text-slate-600 dark:hover:text-zinc-300 cursor-pointer"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+              <div className="flex gap-2">
+                {(['google_street', 'google_hybrid', 'carto_dark', 'osm'] as const).map((layerKey) => {
+                  const isActive = mapLayer === layerKey
+
+                  return (
+                    <button
+                      key={layerKey}
+                      onClick={() => setMapLayer(layerKey)}
+                      className="flex flex-col items-center gap-1 group cursor-pointer focus:outline-none"
+                    >
+                      <div
+                        className={`w-[60px] h-[45px] rounded-xl border-2 transition-all shadow-xs relative overflow-hidden flex items-center justify-center ${
+                          isActive
+                            ? 'border-blue-600 ring-2 ring-blue-600/25 scale-102 shadow-md'
+                            : 'border-slate-200 dark:border-zinc-800 group-hover:border-slate-400 dark:group-hover:border-zinc-700 group-hover:scale-102'
+                        }`}
+                      >
+                        {layerKey === 'google_street' && <StreetMapPreview />}
+                        {layerKey === 'google_hybrid' && <SatelliteMapPreview />}
+                        {layerKey === 'carto_dark' && <DarkMapPreview />}
+                        {layerKey === 'osm' && <OSMMapPreview />}
+                        
+                        <div className="absolute inset-0 bg-black/10 group-hover:bg-black/0 transition-colors" />
+
+                        <span className="absolute bottom-1 right-1 text-[9px] font-bold text-white bg-black/60 px-1 py-0.5 rounded-md backdrop-blur-xs scale-90">
+                          {layerKey === 'google_street' ? 'Peta' : layerKey === 'google_hybrid' ? 'Satelit' : layerKey === 'carto_dark' ? 'Gelap' : 'OSM'}
+                        </span>
+                      </div>
+                      <span className={`text-[10px] font-medium tracking-wide ${isActive ? 'text-blue-600 dark:text-blue-400 font-bold' : 'text-slate-600 dark:text-zinc-400'}`}>
+                        {TILE_LAYERS[layerKey].name.split(' ')[0]}
+                      </span>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          ) : (
+            <button
+              onClick={() => setShowLayerMenu(true)}
+              className="w-10 h-10 rounded-full bg-white dark:bg-zinc-900 shadow-lg border border-slate-200 dark:border-zinc-800 flex items-center justify-center text-slate-700 dark:text-zinc-200 hover:bg-slate-50 dark:hover:bg-zinc-800 hover:scale-105 active:scale-95 transition-all cursor-pointer"
+              title="Pilih Tampilan Peta"
+            >
+              <Layers className="w-5 h-5" />
+            </button>
+          )}
+        </div>
+
+        {/* Floating Google Maps-like GPS Button */}
+        <button
+          onClick={handleLocateUser}
+          className={`absolute right-3.5 z-[1000] w-10 h-10 rounded-full bg-white dark:bg-zinc-900 shadow-lg border border-slate-200 dark:border-zinc-800 flex items-center justify-center text-slate-700 dark:text-zinc-200 hover:bg-slate-50 dark:hover:bg-zinc-800 hover:scale-105 active:scale-95 transition-all cursor-pointer transition-all duration-300 ${
+            drawerOpen ? 'bottom-[56vh] md:bottom-28' : 'bottom-28'
+          }`}
+          title="Pusatkan Peta ke Lokasi Perangkat Saya"
+        >
+          <Locate className="w-5 h-5" />
+        </button>
       </div>
 
       {/* ── RIGHT SLIDE-OVER INSPECTOR DRAWER ──────────────────────────── */}
       {drawerOpen && (selectedODP || selectedCustomer) && (
-        <div className="absolute top-16 right-4 bottom-4 z-30 w-80 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md border border-slate-200 dark:border-zinc-800 rounded-2xl shadow-2xl flex flex-col overflow-hidden text-slate-900 dark:text-zinc-100 animate-in slide-in-from-right duration-200">
+        <div className="absolute z-30 transition-all duration-300 md:top-16 md:right-4 md:bottom-4 md:w-80 md:rounded-2xl bottom-0 left-0 right-0 w-full h-[45vh] md:h-auto rounded-t-3xl rounded-b-none bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md border-t md:border border-slate-200 dark:border-zinc-800 shadow-2xl flex flex-col overflow-hidden text-slate-900 dark:text-zinc-100 animate-in slide-in-from-bottom md:slide-in-from-right duration-200">
           <div className="p-4 border-b border-slate-200 dark:border-zinc-800 flex items-center justify-between bg-slate-50 dark:bg-zinc-950">
             <div className="flex items-center gap-2">
               {selectedODP ? <Building2 className="w-4 h-4 text-amber-500" /> : <MapPin className="w-4 h-4 text-emerald-500" />}
@@ -1043,50 +1212,137 @@ export function NetworkMapPage() {
             )}
 
             {/* Customer Inspector Details */}
-            {selectedCustomer && (
-              <>
-                <div className="p-3 bg-slate-50 dark:bg-zinc-950 rounded-xl border border-slate-200 dark:border-zinc-800 space-y-1">
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-600 dark:text-emerald-400">
-                    {selectedCustomer.Status}
-                  </span>
-                  <h4 className="font-bold text-slate-900 dark:text-white text-sm mt-1">{selectedCustomer.FullName}</h4>
-                  <p className="text-slate-500 dark:text-zinc-400 text-xs">ID: {selectedCustomer.CustomerNumber || selectedCustomer.RegNumber}</p>
-                </div>
+            {selectedCustomer && (() => {
+              const connInfo = (activeConns || []).find(
+                (c: any) => (c.name || c.Name || '').toLowerCase() === (selectedCustomer.PPPoEUsername || '').toLowerCase()
+              )
+              const liveIP = connInfo ? (connInfo.address || connInfo.Address || '-') : '-'
+              const liveUptime = connInfo ? (connInfo.uptime || connInfo.Uptime || '-') : '-'
+              
+              const isIsolir = selectedCustomer.Status === 'isolir'
+              const isOnline = Boolean(selectedCustomer.Status === 'active' && connInfo)
+              const isOffline = Boolean(selectedCustomer.Status === 'active' && !connInfo)
+              
+              return (
+                <>
+                  <div className="p-3 bg-slate-50 dark:bg-zinc-950 rounded-xl border border-slate-200 dark:border-zinc-800 space-y-1">
+                    <div className="flex items-center gap-1.5">
+                      {isIsolir ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-600 dark:text-amber-400">
+                          <ShieldAlert className="w-3 h-3" /> Isolir (Offline)
+                        </span>
+                      ) : isOnline ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-600 dark:text-emerald-400">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> Online
+                        </span>
+                      ) : isOffline ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-rose-500/20 text-rose-600 dark:text-rose-450">
+                          <span className="w-1.5 h-1.5 rounded-full bg-rose-500" /> Offline / LOS
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-slate-500/20 text-slate-600 dark:text-slate-400">
+                          {selectedCustomer.Status}
+                        </span>
+                      )}
+                    </div>
+                    <h4 className="font-bold text-slate-900 dark:text-white text-sm mt-1">{selectedCustomer.FullName}</h4>
+                    <p className="text-slate-500 dark:text-zinc-400 text-xs">ID: {selectedCustomer.CustomerNumber || selectedCustomer.RegNumber}</p>
+                  </div>
 
-                <div className="space-y-2 text-slate-700 dark:text-zinc-300">
-                  <div className="flex justify-between py-1 border-b border-slate-200 dark:border-zinc-800">
-                    <span className="text-slate-400 dark:text-zinc-500">No Telepon:</span>
-                    <span className="font-medium text-slate-800 dark:text-zinc-200">{selectedCustomer.Phone}</span>
-                  </div>
-                  <div className="flex justify-between py-1 border-b border-slate-200 dark:border-zinc-800">
-                    <span className="text-slate-400 dark:text-zinc-500">Terhubung ODP:</span>
-                    <span className="font-bold text-blue-600 dark:text-blue-400">{selectedCustomer.ODPInfo || 'Belum Terhubung'}</span>
-                  </div>
-                  {selectedCustomer.PPPoEUsername && (
+                  <div className="space-y-2 text-slate-700 dark:text-zinc-300">
                     <div className="flex justify-between py-1 border-b border-slate-200 dark:border-zinc-800">
-                      <span className="text-slate-400 dark:text-zinc-500">User PPPoE:</span>
-                      <span className="font-mono text-slate-800 dark:text-zinc-200">{selectedCustomer.PPPoEUsername}</span>
+                      <span className="text-slate-400 dark:text-zinc-500">No Telepon:</span>
+                      <span className="font-medium text-slate-800 dark:text-zinc-200">{selectedCustomer.Phone}</span>
                     </div>
-                  )}
-                  <div className="py-1 border-b border-slate-200 dark:border-zinc-800">
-                    <span className="text-slate-400 dark:text-zinc-500 block mb-0.5">Alamat Pasang:</span>
-                    <p className="text-slate-700 dark:text-zinc-300">{selectedCustomer.AddressDetail}, {selectedCustomer.Village}</p>
-                  </div>
-                  {selectedCustomer.GoogleMapsLink && (
+                    <div className="flex justify-between py-1 border-b border-slate-200 dark:border-zinc-800">
+                      <span className="text-slate-400 dark:text-zinc-500">Terhubung ODP:</span>
+                      <span className="font-bold text-blue-600 dark:text-blue-400">{selectedCustomer.ODPInfo || 'Belum Terhubung'}</span>
+                    </div>
+                    {selectedCustomer.PPPoEUsername && (
+                      <>
+                        <div className="flex justify-between py-1 border-b border-slate-200 dark:border-zinc-800">
+                          <span className="text-slate-400 dark:text-zinc-500">User PPPoE:</span>
+                          <span className="font-mono text-slate-800 dark:text-zinc-200">{selectedCustomer.PPPoEUsername}</span>
+                        </div>
+                        {selectedCustomer.PPPoEPassword && (
+                          <div className="flex justify-between py-1 border-b border-slate-200 dark:border-zinc-800 items-center">
+                            <span className="text-slate-400 dark:text-zinc-500 flex items-center gap-1">Password PPPoE:</span>
+                            <div className="flex items-center gap-1.5 font-mono text-slate-800 dark:text-zinc-200">
+                              <span>{showMapPassword ? selectedCustomer.PPPoEPassword : '••••••••'}</span>
+                              <button
+                                type="button"
+                                onClick={() => setShowMapPassword(!showMapPassword)}
+                                className="text-slate-400 hover:text-slate-600 dark:hover:text-white"
+                              >
+                                {showMapPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                        <div className="flex justify-between py-1 border-b border-slate-200 dark:border-zinc-800">
+                          <span className="text-slate-400 dark:text-zinc-500 flex items-center gap-1">
+                            <Server className="w-3.5 h-3.5 text-slate-400" /> IP Address:
+                          </span>
+                          <span className="font-mono text-slate-800 dark:text-zinc-200">{liveIP}</span>
+                        </div>
+                        {isOnline && (
+                          <div className="flex justify-between py-1 border-b border-slate-200 dark:border-zinc-800">
+                            <span className="text-slate-400 dark:text-zinc-500 flex items-center gap-1">
+                              <Clock className="w-3.5 h-3.5 text-slate-400" /> Uptime:
+                            </span>
+                            <span className="font-mono text-slate-800 dark:text-zinc-200">{liveUptime}</span>
+                          </div>
+                        )}
+                      </>
+                    )}
+                    <div className="flex justify-between py-1 border-b border-slate-200 dark:border-zinc-800">
+                      <span className="text-slate-400 dark:text-zinc-500 flex items-center gap-1">
+                        <Calendar className="w-3.5 h-3.5 text-slate-400" /> Registrasi:
+                      </span>
+                      <span className="font-medium text-slate-800 dark:text-zinc-200">
+                        {formatDateTime(selectedCustomer.CreatedAt)}
+                      </span>
+                    </div>
+                    {selectedCustomer.ActivatedAt && (
+                      <>
+                        <div className="flex justify-between py-1 border-b border-slate-200 dark:border-zinc-800">
+                          <span className="text-slate-400 dark:text-zinc-500 flex items-center gap-1">
+                            <Calendar className="w-3.5 h-3.5 text-slate-400" /> Aktivasi:
+                          </span>
+                          <span className="font-medium text-slate-800 dark:text-zinc-200">
+                            {formatDateTime(selectedCustomer.ActivatedAt)}
+                          </span>
+                        </div>
+                        <div className="flex justify-between py-1 border-b border-slate-200 dark:border-zinc-800">
+                          <span className="text-slate-400 dark:text-zinc-500 flex items-center gap-1">
+                            <Clock className="w-3.5 h-3.5 text-slate-400" /> Masa Aktif:
+                          </span>
+                          <span className="font-medium text-slate-800 dark:text-zinc-200">
+                            {getMasaAktif(selectedCustomer.ActivatedAt)}
+                          </span>
+                        </div>
+                      </>
+                    )}
                     <div className="py-1 border-b border-slate-200 dark:border-zinc-800">
-                      <a
-                        href={selectedCustomer.GoogleMapsLink}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 text-blue-600 dark:text-blue-400 font-medium hover:underline text-[11px]"
-                      >
-                        <ExternalLink className="w-3.5 h-3.5" /> Buka Link Google Maps
-                      </a>
+                      <span className="text-slate-400 dark:text-zinc-500 block mb-0.5">Alamat Pasang:</span>
+                      <p className="text-slate-700 dark:text-zinc-300">{selectedCustomer.AddressDetail}, {selectedCustomer.Village}</p>
                     </div>
-                  )}
-                </div>
-              </>
-            )}
+                    {selectedCustomer.GoogleMapsLink && (
+                      <div className="py-1 border-b border-slate-200 dark:border-zinc-800">
+                        <a
+                          href={selectedCustomer.GoogleMapsLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 text-blue-600 dark:text-blue-400 font-medium hover:underline text-[11px]"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" /> Buka Link Google Maps
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                </>
+              )
+            })()}
           </div>
         </div>
       )}
@@ -1094,7 +1350,7 @@ export function NetworkMapPage() {
       {/* ── ODP ADD/EDIT MODAL ──────────────────────────── */}
       {modalOpen && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden text-slate-900 dark:text-zinc-100">
+          <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto text-slate-900 dark:text-zinc-100">
             <div className="px-6 py-4 border-b border-slate-200 dark:border-zinc-800 flex items-center justify-between bg-slate-50 dark:bg-zinc-950">
               <h3 className="font-bold text-slate-900 dark:text-white text-sm flex items-center gap-2">
                 <Building2 className="w-4 h-4 text-amber-500" />

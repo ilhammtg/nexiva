@@ -597,7 +597,7 @@ export default function MikrotikPage() {
   const tooltipBorder = isDark ? '#1e293b' : '#e2e8f0'
 
   return (
-    <div className="p-8 space-y-6 w-full">
+    <div className="p-4 sm:p-6 md:p-8 space-y-6 w-full">
       {/* View 1: Router List Table (only visible if no router is selected) */}
       {!selectedConfig ? (
         <div className="space-y-6">

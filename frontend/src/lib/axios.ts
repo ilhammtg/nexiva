@@ -21,7 +21,18 @@ api.interceptors.response.use(
         )
         return api(original)
       } catch {
-        window.location.href = '/login'
+        const pathname = window.location.pathname
+        const isPublicPage = pathname === '/' || 
+                             pathname === '/login' ||
+                             pathname === '/register' ||
+                             pathname === '/forgot-password' ||
+                             pathname === '/reset-password' ||
+                             pathname.startsWith('/invoice/') ||
+                             pathname.startsWith('/receipt/')
+
+        if (!isPublicPage) {
+          window.location.href = '/login'
+        }
       }
     }
     return Promise.reject(err)

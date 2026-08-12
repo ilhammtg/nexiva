@@ -29,6 +29,7 @@ type SubmitInput struct {
 	GoogleMapsLink    string
 	ONTSerialNumber   string
 	OLTPortConfigID   string
+	ODPInfo           string
 }
 
 // ApproveInput is the input for CS admin approving a registration.

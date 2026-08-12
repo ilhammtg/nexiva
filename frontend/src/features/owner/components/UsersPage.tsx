@@ -301,7 +301,7 @@ export default function UsersPage() {
   const filtered = (users ?? []).filter((u) => roleFilter === 'all' || u.Role === roleFilter)
 
   return (
-    <div className="p-8 space-y-6">
+    <div className="p-4 sm:p-6 md:p-8 space-y-6">
       {/* Tab Navigation header */}
       <div className="flex border-b border-gray-200 dark:border-zinc-805">
         <button

@@ -48,6 +48,7 @@ func (h *PublicHandler) Submit(c *fiber.Ctx) error {
 		GoogleMapsLink:  strings.TrimSpace(c.FormValue("google_maps_link")),
 		ONTSerialNumber: strings.TrimSpace(c.FormValue("ont_serial_number")),
 		OLTPortConfigID: strings.TrimSpace(c.FormValue("olt_port_config_id")),
+		ODPInfo:         strings.TrimSpace(c.FormValue("odp_info")),
 	}
 
 	if latStr := c.FormValue("maps_lat"); latStr != "" {
@@ -196,6 +197,10 @@ func (h *PublicHandler) GetPublicConfigs(c *fiber.Ctx) error {
 		"invoice_tax_rate":             "11",
 		"invoice_payment_instructions": "Bank Mandiri Virtual Account: 88932 + Nomor HP Anda\nBank BCA Rekening: 123-456-7890 (a.n. PT Jaringan Sarana Nusantara)",
 		"wa_system_number":             "085167720007",
+		"brand_primary_color":         "#2563eb",
+		"brand_secondary_color":       "#4f46e5",
+		"brand_accent_color":          "#f59e0b",
+		"brand_favicon_url":           "",
 	}
 
 	for _, cfg := range configs {
@@ -246,6 +251,14 @@ func (h *PublicHandler) GetPublicConfigs(c *fiber.Ctx) error {
 			resMap["invoice_payment_instructions"] = cfg.Value
 		case "wa_system_number":
 			resMap["wa_system_number"] = cfg.Value
+		case "brand_primary_color":
+			resMap["brand_primary_color"] = cfg.Value
+		case "brand_secondary_color":
+			resMap["brand_secondary_color"] = cfg.Value
+		case "brand_accent_color":
+			resMap["brand_accent_color"] = cfg.Value
+		case "brand_favicon_url":
+			resMap["brand_favicon_url"] = cfg.Value
 		}
 	}
 

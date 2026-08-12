@@ -17,7 +17,17 @@ api.interceptors.response.use(
   (r) => r,
   (error) => {
     const isAuthUrl = error.config?.url?.includes('/auth/login') || error.config?.url?.includes('/auth/refresh')
-    if (error.response?.status === 401 && !isAuthUrl) {
+    
+    const pathname = window.location.pathname
+    const isPublicPage = pathname === '/' || 
+                         pathname === '/login' ||
+                         pathname === '/register' ||
+                         pathname === '/forgot-password' ||
+                         pathname === '/reset-password' ||
+                         pathname.startsWith('/invoice/') ||
+                         pathname.startsWith('/receipt/')
+
+    if (error.response?.status === 401 && !isAuthUrl && !isPublicPage) {
       localStorage.removeItem('access_token')
       localStorage.removeItem('refresh_token')
       localStorage.removeItem('user')

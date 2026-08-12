@@ -63,36 +63,6 @@ func (s *registrationService) Submit(ctx context.Context, input SubmitInput) (*m
 		}
 	}
 
-	// Validate locked regions if config exists
-	configs, err := s.repo.ListConfigs(ctx)
-	if err == nil {
-		lockedRegions := ""
-		for _, cfg := range configs {
-			if cfg.Key == "locked_regions" {
-				lockedRegions = cfg.Value
-				break
-			}
-		}
-		if lockedRegions != "" {
-			allowedCities := strings.Split(lockedRegions, ",")
-			cityAllowed := false
-			inputCityLower := strings.ToLower(strings.TrimSpace(input.City))
-			for _, ac := range allowedCities {
-				acTrimmed := strings.ToLower(strings.TrimSpace(ac))
-				if acTrimmed == "" {
-					continue
-				}
-				if strings.Contains(inputCityLower, acTrimmed) || strings.Contains(acTrimmed, inputCityLower) {
-					cityAllowed = true
-					break
-				}
-			}
-			if !cityAllowed {
-				return nil, fmt.Errorf("%w: pendaftaran hanya dibuka untuk wilayah %s", svcerr.ErrValidation, lockedRegions)
-			}
-		}
-	}
-
 	// Generate registration number
 	regNumber, err := s.generateRegNumber(ctx)
 	if err != nil {
@@ -162,6 +132,9 @@ func (s *registrationService) Submit(ctx context.Context, input SubmitInput) (*m
 	}
 	if input.OLTPortConfigID != "" {
 		reg.OLTPortConfigID = &input.OLTPortConfigID
+	}
+	if input.ODPInfo != "" {
+		reg.ODPInfo = &input.ODPInfo
 	}
 
 	created, err := s.repo.Create(ctx, reg)
