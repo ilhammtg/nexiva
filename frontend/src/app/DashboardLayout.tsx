@@ -9,6 +9,7 @@ const PAGE_TITLES: Record<string, { title: string; subtitle: string }> = {
   '/dashboard': { title: 'Dashboard', subtitle: 'Ringkasan operasional jaringan dan layanan' },
   '/dashboard/registrations': { title: 'Registrasi Pelanggan', subtitle: 'Kelola semua pendaftaran masuk' },
   '/dashboard/customers': { title: 'Database Pelanggan', subtitle: 'Daftar pelanggan aktif yang telah terpasang' },
+  '/dashboard/invoices': { title: 'Tagihan Bulanan', subtitle: 'Manajemen invoice bulanan pelanggan' },
   '/dashboard/packages': { title: 'Paket Internet', subtitle: 'Kelola paket layanan internet' },
   '/dashboard/olt-ports': { title: 'OLT Port Config', subtitle: 'Konfigurasi port OLT per area' },
   '/dashboard/mikrotik': { title: 'Mikrotik Config', subtitle: 'Manajemen perangkat Mikrotik' },
@@ -18,6 +19,7 @@ const PAGE_TITLES: Record<string, { title: string; subtitle: string }> = {
   // CS Admin
   '/cs/dashboard': { title: 'Dashboard CS Admin', subtitle: 'Kelola pendaftaran pelanggan baru' },
   '/cs/registrations': { title: 'Registrasi Pelanggan', subtitle: 'Semua pendaftaran masuk' },
+  '/cs/invoices': { title: 'Tagihan Bulanan', subtitle: 'Manajemen invoice bulanan pelanggan' },
   '/cs/customers': { title: 'Database Pelanggan', subtitle: 'Daftar pelanggan aktif yang telah terpasang' },
   '/cs/activity': { title: 'Activity Log', subtitle: 'Riwayat perubahan status' },
   // Technician

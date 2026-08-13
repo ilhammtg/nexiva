@@ -35,6 +35,8 @@ import ForgotPasswordPage from '@/features/auth/components/ForgotPasswordPage'
 import ResetPasswordPage from '@/features/auth/components/ResetPasswordPage'
 import InvoicePage from '@/features/public/components/InvoicePage'
 import ReceiptPage from '@/features/public/components/ReceiptPage'
+import InvoicesPage from '@/features/billing/components/InvoicesPage'
+import BillingInvoicePage from '@/features/billing/components/BillingInvoicePage'
 
 import { useThemeStore } from '@/stores/useThemeStore'
 import { useBrandingStore, applyMetadata } from '@/stores/useBrandingStore'
@@ -100,6 +102,7 @@ export default function App() {
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/invoice/:id" element={<InvoicePage />} />
           <Route path="/receipt/:id" element={<ReceiptPage />} />
+          <Route path="/billing-invoice/:id" element={<BillingInvoicePage />} />
 
           {/* ── OWNER ─────────────────────────────── */}
           <Route path="/dashboard" element={
@@ -110,6 +113,7 @@ export default function App() {
             <Route index element={<DashboardPage />} />
             <Route path="registrations" element={<RegistrationsPage />} />
             <Route path="customers" element={<CustomersPage role="owner" />} />
+            <Route path="invoices" element={<InvoicesPage />} />
             <Route path="packages" element={<PackagesPage />} />
             <Route path="olt-ports" element={<OLTPortsPage />} />
             <Route path="network-map" element={<NetworkMapPage />} />
@@ -135,6 +139,7 @@ export default function App() {
             <Route path="dashboard" element={<CSDashboardPage />} />
             <Route path="registrations" element={<CSRegistrationsPage />} />
             <Route path="customers" element={<CustomersPage role="cs_admin" />} />
+            <Route path="invoices" element={<InvoicesPage />} />
             <Route path="packages" element={<PackagesPage />} />
             <Route path="olt-ports" element={<OLTPortsPage />} />
             <Route path="network-map" element={<NetworkMapPage />} />

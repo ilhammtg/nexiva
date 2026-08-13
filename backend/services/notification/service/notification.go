@@ -814,3 +814,111 @@ func renderInvoiceTemplate(data invoiceEmailData) (string, error) {
 	return buf.String(), nil
 }
 
+func (s *notificationService) SendMonthlyInvoiceLink(ctx context.Context, reg *model.Registration, invoiceNumber string, amount int64, period string, invoiceURL string) error {
+	companyName := s.getTemplateValue(ctx, "brand_name", "Tim Kami")
+
+	defaultTmpl := "*[" + companyName + "] Tagihan Internet Bulanan*\n" +
+		"━━━━━━━━━━━━━━━━━━━━━\n" +
+		"Yth. *{{FullName}}*,\n\n" +
+		"Tagihan internet bulanan Anda untuk periode *{{Period}}* telah diterbitkan.\n\n" +
+		"*Detail Tagihan:*\n" +
+		"• No. Tagihan    : {{InvoiceNumber}}\n" +
+		"• Total Tagihan  : Rp {{Amount}}\n" +
+		"• Link Tagihan   : {{InvoiceURL}}\n\n" +
+		"Silakan lakukan pembayaran sesuai petunjuk pada invoice di atas sebelum tanggal jatuh tempo.\n\n" +
+		"Hormat kami,\n" +
+		"*" + companyName + "*"
+	tmpl := s.getTemplateValue(ctx, "notif_tmpl_monthly_invoice", defaultTmpl)
+
+	msg := formatMessage(tmpl, map[string]string{
+		"FullName":      reg.FullName,
+		"Phone":         reg.Phone,
+		"Period":        period,
+		"InvoiceNumber": invoiceNumber,
+		"Amount":        formatNumber(amount),
+		"InvoiceURL":    invoiceURL,
+	})
+
+	return s.send(ctx, reg.Phone, msg)
+}
+
+func (s *notificationService) SendMonthlyInvoiceEmail(ctx context.Context, reg *model.Registration, invoiceNumber string, amount int64, period string, invoiceURL string) error {
+	if reg.Email == nil || *reg.Email == "" {
+		s.logger.Info("monthly invoice email skipped: registration has no email address", zap.String("reg_id", reg.ID))
+		return nil
+	}
+
+	brandName := s.getTemplateValue(ctx, "brand_name", "ISP Platform")
+	logoURL := s.getTemplateValue(ctx, "brand_logo_url", "")
+	if logoURL != "" && !strings.HasPrefix(logoURL, "http") {
+		base := strings.TrimSuffix(s.cfg.AppBaseURL, "/")
+		if !strings.HasPrefix(logoURL, "/") {
+			logoURL = "/" + logoURL
+		}
+		logoURL = base + logoURL
+	}
+	taxRateStr := s.getTemplateValue(ctx, "invoice_tax_rate", "11")
+
+	var taxRate float64
+	fmt.Sscanf(taxRateStr, "%f", &taxRate) //nolint:errcheck
+
+	pkgPrice := amount
+	pkgName := ""
+	pkgSpeed := ""
+	var pkgRow struct {
+		Name          string `db:"name"`
+		SpeedDownMbps int    `db:"speed_down_mbps"`
+	}
+	if err := s.db.GetContext(ctx, &pkgRow, `SELECT name, speed_down_mbps FROM packages WHERE id = $1`, reg.PackageID); err == nil {
+		pkgName = pkgRow.Name
+		pkgSpeed = fmt.Sprintf("%d", pkgRow.SpeedDownMbps)
+	}
+
+	subtotal := int64(float64(amount) / (1 + taxRate/100))
+	tax := amount - subtotal
+
+	bankName := s.getTemplateValue(ctx, "bank_name", "BCA")
+	bankAccount := s.getTemplateValue(ctx, "bank_account", "1234567890")
+	bankHolder := s.getTemplateValue(ctx, "bank_holder", brandName)
+
+	customerNum := reg.RegNumber
+	if reg.CustomerNumber != nil && *reg.CustomerNumber != "" {
+		customerNum = *reg.CustomerNumber
+	}
+
+	data := invoiceEmailData{
+		BrandName:    brandName,
+		LogoURL:      logoURL,
+		FullName:     reg.FullName,
+		RegNumber:    invoiceNumber, // Use invoice number here
+		CustomerNum:  customerNum,
+		InstFee:      "Rp 0", // No installation fee for monthly recurring
+		PackageName:  pkgName,
+		PackageSpeed: pkgSpeed,
+		PackagePrice: "Rp " + formatNumber(pkgPrice),
+		Subtotal:     "Rp " + formatNumber(subtotal),
+		Tax:          "Rp " + formatNumber(tax),
+		TaxRate:      taxRateStr,
+		Total:        "Rp " + formatNumber(amount),
+		InvoiceURL:   invoiceURL,
+		BankName:     bankName,
+		BankAccount:  bankAccount,
+		BankHolder:   bankHolder,
+		Year:         time.Now().Year(),
+	}
+
+	body, err := renderInvoiceTemplate(data)
+	if err != nil {
+		return fmt.Errorf("notifSvc.SendMonthlyInvoiceEmail: render: %w", err)
+	}
+
+	subject := fmt.Sprintf("[%s] Tagihan Internet Bulanan Periode %s — %s", brandName, period, customerNum)
+	if err := s.mailer.SendHTML(ctx, *reg.Email, reg.FullName, subject, body); err != nil {
+		return fmt.Errorf("notifSvc.SendMonthlyInvoiceEmail: send email: %w", err)
+	}
+
+	s.logger.Info("monthly invoice email sent", zap.String("to", *reg.Email), zap.String("reg_id", reg.ID))
+	return nil
+}
+
+

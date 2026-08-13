@@ -205,6 +205,12 @@ type RegistrationService interface {
 	CreateODP(ctx context.Context, req *model.CreateODPRequest) (*model.ODP, error)
 	UpdateODP(ctx context.Context, id string, req *model.CreateODPRequest) (*model.ODP, error)
 	DeleteODP(ctx context.Context, id string) error
+
+	// Invoices management
+	ListInvoices(ctx context.Context, filter model.InvoiceFilter) ([]model.Invoice, int, error)
+	GetInvoice(ctx context.Context, id string) (*model.Invoice, error)
+	ConfirmInvoicePayment(ctx context.Context, id string, confirmedByID string, req model.ConfirmPaymentRequest) error
+	ResendInvoiceNotification(ctx context.Context, id string) error
 }
 
 type ResendNotifResult struct {
@@ -214,3 +220,4 @@ type ResendNotifResult struct {
 	EmailError string `json:"email_error,omitempty"`
 	Message    string `json:"message"`
 }
+

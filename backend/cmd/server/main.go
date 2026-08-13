@@ -118,9 +118,13 @@ func main() {
 	ownerHandler := regHandler.NewOwnerHandler(rSvc, aRepo, log)
 	oltHandler := oltHandlerPkg.NewOltHandler(rdb)
 
-	// --- Start background worker ---
+	// --- Start background workers ---
 	workerCtx, cancelWorker := context.WithCancel(context.Background())
 	go pWorker.Start(workerCtx)
+
+	billingCtx, cancelBilling := context.WithCancel(context.Background())
+	bWorker := regService.NewBillingWorker(rRepo, nSvc, cfg, log)
+	go bWorker.Start(billingCtx)
 
 	app := fiber.New(fiber.Config{
 		AppName:      "ISP Registration API v1",
@@ -168,6 +172,7 @@ func main() {
 	v1.Get("/packages", publicHandler.ListPackages)
 	v1.Get("/public-configs", publicHandler.GetPublicConfigs)
 	v1.Get("/public-odps", csHandler.ListODPs)
+	v1.Get("/public-invoices/:id", publicHandler.GetPublicInvoice)
 
 	// Auth routes
 	authGroup := v1.Group("/auth")
@@ -204,6 +209,12 @@ func main() {
 	admin.Get("/technicians", csHandler.ListTechnicians)
 	admin.Get("/activity-logs", csHandler.ActivityLogs)
 	admin.Get("/provisioning-logs/:registration_id", csHandler.ProvisioningLogs)
+
+	// Monthly Invoices Management (CS Admin, Owner)
+	admin.Get("/invoices", middleware.Role("cs_admin", "owner"), csHandler.ListInvoices)
+	admin.Get("/invoices/:id", middleware.Role("cs_admin", "owner"), csHandler.GetInvoice)
+	admin.Post("/invoices/:id/confirm", middleware.Role("cs_admin", "owner"), csHandler.ConfirmInvoicePayment)
+	admin.Post("/invoices/:id/resend", middleware.Role("cs_admin", "owner"), csHandler.ResendInvoiceNotification)
 
 	// ODP Management (CS Admin, Owner, Technician)
 	admin.Get("/odps", csHandler.ListODPs)
@@ -305,6 +316,7 @@ func main() {
 	<-quit
 	log.Info("shutting down...")
 	cancelWorker()
+	cancelBilling()
 
 	if err := app.ShutdownWithTimeout(10 * time.Second); err != nil {
 		log.Error("shutdown error", zap.Error(err))

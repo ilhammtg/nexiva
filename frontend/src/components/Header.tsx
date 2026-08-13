@@ -1,10 +1,11 @@
 import { useState, useRef, useEffect } from 'react'
 import {
   Bell, Search, Sun, Moon, ChevronDown, Menu,
-  CheckCheck, Trash2, RefreshCw, UserPlus, AlertCircle,
+  CheckCheck, Trash2, RefreshCw, UserPlus, AlertCircle, LogOut, User
 } from 'lucide-react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from '@/features/auth/store/useAuthStore'
+import { authApi } from '@/features/auth/api/authApi'
 import { useThemeStore } from '@/stores/useThemeStore'
 import { useNotificationStore } from '@/stores/useNotificationStore'
 import type { Notification } from '@/stores/useNotificationStore'
@@ -157,13 +158,16 @@ function NotificationDropdown({ onClose }: { onClose: () => void }) {
 }
 
 export default function Header({ onToggleSidebar }: Props) {
-  const user = useAuthStore((s) => s.user)
+  const { user, logout } = useAuthStore()
   const { theme, toggleTheme } = useThemeStore()
   const { unreadCount } = useNotificationStore()
   const navigate = useNavigate()
   const { pathname } = useLocation()
   const [showNotifications, setShowNotifications] = useState(false)
   const notifRef = useRef<HTMLDivElement>(null)
+  
+  const [showProfileDropdown, setShowProfileDropdown] = useState(false)
+  const profileRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -176,6 +180,28 @@ export default function Header({ onToggleSidebar }: Props) {
     }
     return () => document.removeEventListener('mousedown', handleClick)
   }, [showNotifications])
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (profileRef.current && !profileRef.current.contains(e.target as Node)) {
+        setShowProfileDropdown(false)
+      }
+    }
+    if (showProfileDropdown) {
+      document.addEventListener('mousedown', handleClick)
+    }
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [showProfileDropdown])
+
+  const handleLogout = async () => {
+    try {
+      await authApi.logout()
+    } catch (e) {
+      // Ignore network errors on logout to allow offline/session clearing
+    }
+    logout()
+    navigate('/login')
+  }
 
   const profilePath = pathname.startsWith('/cs')
     ? '/cs/profile'
@@ -252,27 +278,57 @@ export default function Header({ onToggleSidebar }: Props) {
         </div>
 
         {/* User profile */}
-        <button
-          onClick={() => navigate(profilePath)}
-          className="flex items-center gap-3 pl-4 border-l border-gray-200 dark:border-zinc-800 hover:opacity-80 transition-opacity group"
-          title="Profil saya"
-        >
-          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0 shadow-sm">
-            {initials}
-          </div>
-          <div className="hidden md:block text-left">
-            <p className="text-sm font-semibold text-gray-700 dark:text-zinc-200 leading-tight">
-              {user?.full_name ?? 'Admin Pusat'}
-            </p>
-            <p className="text-[11px] text-gray-400 dark:text-zinc-500 capitalize leading-none mt-0.5">
-              {user?.role === 'owner' ? 'Super Admin'
-                : user?.role === 'cs_admin' ? 'CS Admin'
-                : user?.role === 'technician' ? 'Teknisi'
-                : 'Super Admin'}
-            </p>
-          </div>
-          <ChevronDown className="w-4 h-4 text-gray-400 hidden sm:block" />
-        </button>
+        <div ref={profileRef} className="relative">
+          <button
+            onClick={() => setShowProfileDropdown((v) => !v)}
+            className="flex items-center gap-3 pl-4 border-l border-gray-200 dark:border-zinc-800 hover:opacity-80 transition-opacity group"
+            title="Menu profil"
+          >
+            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0 shadow-sm">
+              {initials}
+            </div>
+            <div className="hidden md:block text-left">
+              <p className="text-sm font-semibold text-gray-700 dark:text-zinc-200 leading-tight">
+                {user?.full_name ?? 'Admin Pusat'}
+              </p>
+              <p className="text-[11px] text-gray-400 dark:text-zinc-500 capitalize leading-none mt-0.5">
+                {user?.role === 'owner' ? 'Super Admin'
+                  : user?.role === 'cs_admin' ? 'CS Admin'
+                  : user?.role === 'technician' ? 'Teknisi'
+                  : 'Super Admin'}
+              </p>
+            </div>
+            <ChevronDown className="w-4 h-4 text-gray-400 hidden sm:block" />
+          </button>
+
+          {showProfileDropdown && (
+            <div className="absolute right-0 top-full mt-2.5 w-48 bg-white dark:bg-zinc-900 rounded-lg shadow-lg border border-gray-200 dark:border-zinc-800 z-50 overflow-hidden py-1">
+              <button
+                onClick={() => {
+                  setShowProfileDropdown(false)
+                  navigate(profilePath)
+                }}
+                className="w-full px-4 py-2.5 text-left text-xs font-semibold text-gray-700 dark:text-zinc-300 hover:bg-gray-50 dark:hover:bg-zinc-800/60 flex items-center gap-2 transition-colors"
+              >
+                <User className="w-4 h-4 text-gray-450 dark:text-zinc-500" />
+                Profil Saya
+              </button>
+              
+              <div className="border-t border-gray-100 dark:border-zinc-800/80 my-1" />
+              
+              <button
+                onClick={() => {
+                  setShowProfileDropdown(false)
+                  handleLogout()
+                }}
+                className="w-full px-4 py-2.5 text-left text-xs font-semibold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 flex items-center gap-2 transition-colors"
+              >
+                <LogOut className="w-4 h-4 text-red-500 dark:text-red-400" />
+                Keluar
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </header>
   )

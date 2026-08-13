@@ -1393,3 +1393,110 @@ func (s *registrationService) UpdateODP(ctx context.Context, id string, req *mod
 func (s *registrationService) DeleteODP(ctx context.Context, id string) error {
 	return s.repo.DeleteODP(ctx, id)
 }
+
+func (s *registrationService) ListInvoices(ctx context.Context, filter model.InvoiceFilter) ([]model.Invoice, int, error) {
+	return s.repo.ListInvoices(ctx, filter)
+}
+
+func (s *registrationService) GetInvoice(ctx context.Context, id string) (*model.Invoice, error) {
+	return s.repo.GetInvoiceByID(ctx, id)
+}
+
+func (s *registrationService) ConfirmInvoicePayment(ctx context.Context, id string, confirmedByID string, req model.ConfirmPaymentRequest) error {
+	inv, err := s.repo.GetInvoiceByID(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	if inv.Status == model.InvoiceStatusPaid {
+		return nil
+	}
+
+	reg, err := s.repo.GetByID(ctx, inv.RegistrationID)
+	if err != nil {
+		return err
+	}
+
+	// Update invoice status to paid
+	err = s.repo.UpdateInvoiceStatus(ctx, id, model.InvoiceStatusPaid, &req.Bank, &confirmedByID)
+	if err != nil {
+		return err
+	}
+
+	// If customer was isolir, let's restore and reactivate PPPoE
+	if reg.Status == model.StatusIsolir {
+		err = s.repo.UpdateStatus(ctx, reg.ID, model.StatusActive, confirmedByID, "admin", "Tagihan lunas, internet diaktifkan kembali")
+		if err != nil {
+			s.logger.Error("failed to update registration status to active", zap.String("reg_id", reg.ID), zap.Error(err))
+		}
+
+		if reg.PPPoEUsername != nil && *reg.PPPoEUsername != "" {
+			pkg, err := s.repo.GetPackageByID(ctx, reg.PackageID)
+			if err == nil && pkg != nil {
+				mConfigs, err := s.repo.ListMikrotikConfigs(ctx)
+				if err == nil {
+					var activeConfig *model.MikrotikConfig
+					for _, m := range mConfigs {
+						if m.IsActive {
+							activeConfig = &m
+							break
+						}
+					}
+
+					if activeConfig != nil {
+						plainPassword, err := crypto.Decrypt(activeConfig.PasswordEnc, s.cfg.AppSecretKey)
+						if err == nil {
+							client := mikrotik.NewClient(activeConfig.Host, activeConfig.Port, activeConfig.Username, plainPassword)
+							// Restore normal Speed Profile on Mikrotik
+							_ = client.UpdateSecretProfile(*reg.PPPoEUsername, pkg.MikrotikProfile)
+							// Enable PPPoE Secret
+							_ = client.ToggleSecret(*reg.PPPoEUsername, false)
+							// Terminate connection to apply profile immediately
+							_ = client.DisconnectActiveConnection(*reg.PPPoEUsername)
+
+							s.logger.Info("payment confirmed: restored Mikrotik secret settings",
+								zap.String("username", *reg.PPPoEUsername),
+								zap.String("profile", pkg.MikrotikProfile),
+							)
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
+func (s *registrationService) ResendInvoiceNotification(ctx context.Context, id string) error {
+	inv, err := s.repo.GetInvoiceByID(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	reg, err := s.repo.GetByID(ctx, inv.RegistrationID)
+	if err != nil {
+		return err
+	}
+
+	invoiceURL := fmt.Sprintf("%s/billing-invoice/%s", s.cfg.AppBaseURL, id)
+	periodStr := inv.Period.Format("January 2006")
+	
+	// Total amount including tax
+	totalAmount := inv.Amount + inv.TaxAmount
+
+	// Send WA Link
+	err = s.notifSvc.SendMonthlyInvoiceLink(ctx, reg, inv.InvoiceNumber, totalAmount, periodStr, invoiceURL)
+	if err != nil {
+		s.logger.Error("failed to send monthly invoice WA link", zap.String("inv_id", id), zap.Error(err))
+	}
+
+	// Send Email
+	err = s.notifSvc.SendMonthlyInvoiceEmail(ctx, reg, inv.InvoiceNumber, totalAmount, periodStr, invoiceURL)
+	if err != nil {
+		s.logger.Error("failed to send monthly invoice email", zap.String("inv_id", id), zap.Error(err))
+	}
+
+	return nil
+}
+

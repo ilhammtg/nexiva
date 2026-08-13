@@ -1,0 +1,168 @@
+# Implementation Plan — Skema Billing: Prabayar / Pascabayar
+
+## Ringkasan
+
+Menambahkan pengaturan **skema billing universal** yang dapat dipilih oleh admin:
+- **Pascabayar (Postpaid)**: Pelanggan pakai dulu, tagihan dikirim tiap tanggal tertentu per bulan. Jika lewat jatuh tempo + grace period → isolir otomatis.
+- **Prabayar (Prepaid)**: Pelanggan bayar di muka untuk masa aktif N hari. Mendekati expired → notifikasi. Expired → disconnected otomatis.
+
+Pengaturan bersifat **universal** (satu setting untuk semua pelanggan), tidak per-paket.
+
+---
+
+## Proposed Changes
+
+### Layer 1: Database Migration
+
+#### [NEW] `039_add_billing_scheme_configs.up.sql`
+Insert config keys baru ke `app_configs`:
+
+| Key | Default | Keterangan |
+|---|---|---|
+| `billing_scheme` | `postpaid` | Skema aktif: `postpaid` atau `prepaid` |
+| `billing_due_day` | `5` | (Postpaid) Tanggal jatuh tempo per bulan (1-28) |
+| `billing_grace_period_days` | `7` | Hari toleransi setelah jatuh tempo sebelum isolir |
+| `billing_reminder_days_before` | `3` | H-N reminder WA sebelum jatuh tempo / expired |
+| `billing_prepaid_period_days` | `30` | (Prepaid) Durasi masa aktif per periode |
+
+#### [NEW] `039_add_billing_scheme_configs.down.sql`
+Hapus config keys di atas.
+
+#### [NEW] `040_add_service_expiry_to_registrations.up.sql`
+Tambah kolom `service_expires_at TIMESTAMPTZ` ke tabel `registrations`. Digunakan hanya saat prepaid aktif.
+
+#### [NEW] `040_add_service_expiry_to_registrations.down.sql`
+Drop kolom `service_expires_at`.
+
+---
+
+### Layer 2: Backend Model
+
+#### [MODIFY] `registration.go` (model)
+Tambah field `ServiceExpiresAt *time.Time` ke struct `Registration`.
+
+---
+
+### Layer 3: Repository
+
+#### [MODIFY] `postgres.go`
+- Tambah `service_expires_at` ke SELECT query `GetByID` dan `ListRegistrations`.
+- Tambah method `UpdateServiceExpiry(ctx, regID string, expiresAt time.Time) error`.
+- Tambah method `GetExpiredPrepaidRegistrations(ctx) ([]Registration, error)` — SELECT registrations WHERE `billing_scheme=prepaid` AND `service_expires_at <= NOW()` AND `status = 'active'`.
+- Tambah method `GetExpiringPrepaidRegistrations(ctx, daysAhead int) ([]Registration, error)` — untuk reminder H-N.
+- Tambah method `GetConfigValue(ctx, key string) (string, error)` — helper baca satu config dari DB.
+
+---
+
+### Layer 4: Billing Worker
+
+#### [MODIFY] `billing_worker.go`
+Refactor `RunDailyCheck` untuk membaca `billing_scheme` dari DB lalu menjalankan flow yang sesuai:
+
+```
+RunDailyCheck:
+  scheme = GetConfigValue("billing_scheme") // "postpaid" | "prepaid"
+
+  if scheme == "postpaid":
+    generatePostpaidInvoices()   // logika existing, pakai billing_due_day
+    processAutoSuspensions()     // logika existing + pakai billing_grace_period_days
+    sendPostpaidReminders()      // WA H-N sebelum jatuh tempo
+
+  if scheme == "prepaid":
+    processPrepaidExpirations()  // putuskan pelanggan expired, update status isolir
+    sendPrepaidReminders()       // WA H-N sebelum masa aktif habis
+    // NOTE: invoice prepaid dibuat SAAT konfirmasi pembayaran (bukan otomatis)
+```
+
+**Perubahan logika Postpaid:**
+- `billing_due_day`: invoice dibuat pada tanggal yang dikonfigurasi (bukan berdasarkan hari aktivasi), membuat jadwal lebih mudah diprediksi. Jika `billing_due_day = 5`, semua pelanggan aktif mendapat invoice pada tanggal 5 setiap bulan.
+- `billing_grace_period_days`: query overdue baru = `due_date + grace_period_days <= NOW()`.
+
+**Logika Prepaid baru:**
+- `processPrepaidExpirations()`: cari `active` registrations dengan `service_expires_at <= NOW()` → update status ke `isolir`, putuskan PPPoE.
+- `sendPrepaidReminders()`: cari `active` registrations dengan `service_expires_at` dalam N hari → kirim WA reminder perpanjangan.
+
+---
+
+### Layer 5: Service Layer
+
+#### [MODIFY] `registration.go` (service)
+Modifikasi `ConfirmInvoicePayment`:
+- Setelah invoice dikonfirmasi lunas, baca `billing_scheme`.
+- Jika `prepaid`: hitung `service_expires_at = MAX(NOW(), service_expires_at_lama) + prepaid_period_days`, update ke DB. Ini memastikan perpanjangan tepat dari tanggal expired (bukan dari tanggal bayar).
+- Jika `postpaid`: perilaku existing (restore PPPoE profile, reactivate).
+
+---
+
+### Layer 6: Frontend — SettingsPage
+
+#### [MODIFY] `SettingsPage.tsx`
+Tambah keys baru ke `configGroups.invoice`:
+```ts
+invoice: [
+  // existing...
+  'billing_scheme',
+  'billing_due_day',
+  'billing_grace_period_days',
+  'billing_reminder_days_before',
+  'billing_prepaid_period_days',
+]
+```
+
+Tambah UI section baru di panel `activeTab === 'invoice'` — **"Skema Billing"** section, dengan:
+- Toggle card pilihan **Pascabayar / Prabayar** (seperti UI verifikasi method)
+- Field input angka yang conditional:
+  - Jika Postpaid: tampilkan `billing_due_day`, `billing_grace_period_days`, `billing_reminder_days_before`
+  - Jika Prepaid: tampilkan `billing_prepaid_period_days`, `billing_reminder_days_before`
+- Info box penjelasan perilaku skema yang dipilih
+
+---
+
+### Layer 7: Frontend — InvoicesPage & CustomerPage
+
+#### [MODIFY] `InvoicesPage.tsx`
+Tidak ada perubahan fungsional utama — invoice tetap dibuat oleh worker. Hanya tambahkan label kecil di summary card yang menampilkan skema billing aktif saat ini (read-only dari public config).
+
+#### [MODIFY] `CustomersPage.tsx`
+Untuk skema prepaid: tampilkan kolom **"Masa Aktif"** yang menampilkan `service_expires_at` dengan warna:
+- 🟢 Hijau: > 7 hari lagi
+- 🟡 Kuning: 1-7 hari lagi
+- 🔴 Merah: expired / hari ini
+
+---
+
+## Verification Plan
+
+### Backend
+```bash
+go build -o /dev/null cmd/server/main.go
+```
+Verifikasi:
+- Migrasi berjalan bersih saat container restart
+- `billing_scheme = postpaid` → worker masih jalan seperti sebelumnya
+- `billing_scheme = prepaid` → worker membaca `service_expires_at` dan mengisolasi pelanggan expired
+
+### Frontend
+- Buka **Pengaturan Layanan → tab Billing & Invoice**
+- Verifikasi toggle Postpaid/Prepaid berfungsi dan menyimpan config
+- Verifikasi field conditional muncul/hilang sesuai pilihan
+- Pastikan `npm run type-check` exit 0
+
+### Manual E2E
+1. Set `billing_scheme = prepaid`, `billing_prepaid_period_days = 30`
+2. Konfirmasi pembayaran invoice pelanggan → verifikasi `service_expires_at` ter-update
+3. Set `service_expires_at` ke masa lalu via DB → jalankan `RunDailyCheck` → verifikasi pelanggan terisolir
+4. Konfirmasi ulang pembayaran → verifikasi `service_expires_at` diperpanjang 30 hari
+
+---
+
+## Urutan Pengerjaan
+
+1. `[DB]` Migration 039 (config keys) + 040 (kolom service_expires_at)
+2. `[BE Model]` Tambah field `ServiceExpiresAt` di registration model
+3. `[BE Repo]` Tambah query baru (GetConfigValue, UpdateServiceExpiry, GetExpiredPrepaid, GetExpiringPrepaid)
+4. `[BE Worker]` Refactor billing_worker dengan branching scheme
+5. `[BE Service]` Update ConfirmInvoicePayment untuk prepaid expiry
+6. `[FE Settings]` Tambah UI skema billing di SettingsPage
+7. `[FE Customers]` Tambah kolom masa aktif di CustomersPage
+8. `[Build & Test]` Build backend, type-check frontend, rebuild container

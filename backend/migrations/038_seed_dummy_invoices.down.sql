@@ -1,0 +1,14 @@
+-- 038_seed_dummy_invoices.down.sql
+
+DELETE FROM invoices WHERE id IN (
+  '70000000-0000-0000-0000-000000000001',
+  '70000000-0000-0000-0000-000000000002',
+  '70000000-0000-0000-0000-000000000003',
+  '70000000-0000-0000-0000-000000000004'
+);
+
+-- Kembalikan status Muhammad Iqbal dan Nurhayati ke active
+UPDATE registrations SET status = 'active' WHERE id IN (
+  '50000000-0000-0000-0000-000000000003',
+  '50000000-0000-0000-0000-000000000004'
+);

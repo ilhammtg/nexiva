@@ -374,3 +374,30 @@ func (c *Client) AddSecret(name, password, profile, service string) error {
 	)
 	return err
 }
+
+// UpdateSecretProfile updates the profile of a PPPoE secret
+func (c *Client) UpdateSecretProfile(name string, profile string) error {
+	conn, err := c.connect()
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+
+	reply, err := conn.Run("/ppp/secret/print", "?name="+name)
+	if err != nil {
+		return err
+	}
+
+	if len(reply.Re) == 0 {
+		return fmt.Errorf("secret for %s not found", name)
+	}
+
+	id := reply.Re[0].Map[".id"]
+	if id == "" {
+		return fmt.Errorf("secret ID not found for %s", name)
+	}
+
+	_, err = conn.Run("/ppp/secret/set", "=.id="+id, "=profile="+profile)
+	return err
+}
+

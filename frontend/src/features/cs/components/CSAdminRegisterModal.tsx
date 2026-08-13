@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { X, Upload, CheckCircle2, MapPin, Locate, Map, User, Phone, Mail, CreditCard, Shield, ArrowRight, ArrowLeft, Check, Sparkles, AlertCircle } from 'lucide-react'
+import { X, Upload, CheckCircle2, MapPin, Locate, Map, User, Phone, Mail, CreditCard, Shield, ArrowRight, ArrowLeft, Check, Sparkles } from 'lucide-react'
 import { toast } from 'sonner'
 import { publicApi } from '@/features/public/api/publicApi'
 import { csApi } from '../api/csApi'
@@ -360,10 +360,10 @@ export default function CSAdminRegisterModal({ onClose, onSuccess }: CSAdminRegi
         {/* Wizard Stepper Navigation */}
         <div className="px-6 py-3 bg-slate-50 dark:bg-slate-850 border-b border-slate-200/60 dark:border-slate-800 flex items-center justify-between gap-2 overflow-x-auto shrink-0">
           {[
-            { step: 1, label: 'Data Diri & Paket', icon: User },
-            { step: 2, label: 'Alamat & Peta ODP', icon: MapPin },
-            { step: 3, label: 'Review & Konfirmasi', icon: CheckCircle2 },
-          ].map(({ step, label, icon: Icon }) => {
+            { step: 1, label: 'Data Diri & Paket' },
+            { step: 2, label: 'Alamat & Peta ODP' },
+            { step: 3, label: 'Review & Konfirmasi' },
+          ].map(({ step, label }) => {
             const isActive = activeStep === step
             const isDone = activeStep > step
             return (

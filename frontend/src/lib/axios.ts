@@ -28,7 +28,8 @@ api.interceptors.response.use(
                              pathname === '/forgot-password' ||
                              pathname === '/reset-password' ||
                              pathname.startsWith('/invoice/') ||
-                             pathname.startsWith('/receipt/')
+                             pathname.startsWith('/receipt/') ||
+                             pathname.startsWith('/billing-invoice/')
 
         if (!isPublicPage) {
           window.location.href = '/login'

@@ -1,13 +1,12 @@
-import { NavLink, useNavigate, useLocation } from 'react-router-dom'
+import { NavLink, useLocation } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import {
   LayoutDashboard, FileText, Network,
-  Users, LogOut, Wifi, ChevronRight, ChevronDown,
+  Users, Wifi, ChevronRight, ChevronDown,
   DollarSign, BarChart2, MapPin, ClipboardList, Settings, CalendarCheck, Globe
 } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { useAuthStore } from '@/features/auth/store/useAuthStore'
-import { authApi } from '@/features/auth/api/authApi'
 import { publicApi } from '@/features/public/api/publicApi'
 import { cn } from '@/lib/utils'
 
@@ -23,18 +22,18 @@ interface NavItem {
   icon: any;
   isMock?: boolean;
   key?: string;
+  role?: string;
   subItems?: SubNavItem[];
 }
 
 interface SidebarProps {
-  isOpen?: boolean;
+  isOpen: boolean;
   onClose?: () => void;
 }
 
 export default function Sidebar({ isOpen, onClose }: SidebarProps) {
-  const navigate = useNavigate()
   const location = useLocation()
-  const { user, logout } = useAuthStore()
+  const { user } = useAuthStore()
   const [openDropdowns, setOpenDropdowns] = useState<Record<string, boolean>>({})
 
   const role = user?.role ?? 'owner'
@@ -107,6 +106,16 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
     })
   }
 
+  // 3b. Tagihan Bulanan
+  if (role === 'owner' || role === 'cs_admin') {
+    menuItems.push({
+      to: `/${rolePath}/invoices`,
+      label: 'Tagihan Bulanan',
+      icon: DollarSign,
+      key: 'invoices'
+    })
+  }
+
   // 4. Integrasi Jaringan (Dropdown)
   const networkSub: SubNavItem[] = []
   if (hasPerm('packages')) networkSub.push({ to: `/${rolePath}/packages`, label: 'Paket Internet' })
@@ -158,7 +167,6 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
 
   // 7. Mocked items (only for owner)
   if (role === 'owner') {
-    menuItems.push({ to: '#billing', label: 'Billing & Invoice', icon: DollarSign, isMock: true })
     menuItems.push({ to: '#monitoring', label: 'Monitoring Traffic', icon: BarChart2, isMock: true })
     menuItems.push({ to: '#map', label: 'Map Pelanggan', icon: MapPin, isMock: true })
     menuItems.push({ to: '#reports', label: 'Laporan Harian', icon: ClipboardList, isMock: true })
@@ -186,11 +194,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
     }
   }, [location.pathname, role])
 
-  const handleLogout = async () => {
-    await authApi.logout()
-    logout()
-    navigate('/login')
-  }
+
 
   const toggleDropdown = (label: string) => {
     setOpenDropdowns((prev) => ({
@@ -357,56 +361,6 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           )
         })}
       </nav>
-
-      {/* Activation Status Widget */}
-      <div className="mx-4 my-2 p-4 rounded-lg bg-gray-50 dark:bg-zinc-950 border border-gray-200 dark:border-zinc-850">
-        <p className="text-xs font-bold text-gray-700 dark:text-zinc-300 mb-3">
-          Status Aktivasi Hari Ini
-        </p>
-        <div className="space-y-2">
-          <div className="flex items-center justify-between text-xs">
-            <span className="text-gray-500 dark:text-zinc-400">Aktivasi Sukses</span>
-            <span className="font-medium text-emerald-600 dark:text-emerald-450 bg-emerald-50 dark:bg-emerald-500/10 px-2 py-0.5 rounded-full">
-              48
-            </span>
-          </div>
-          <div className="flex items-center justify-between text-xs">
-            <span className="text-gray-500 dark:text-zinc-400">Menunggu Aktivasi</span>
-            <span className="font-medium text-amber-600 dark:text-amber-450 bg-amber-50 dark:bg-amber-550/10 px-2 py-0.5 rounded-full">
-              19
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* Footer / User Profile & Logout */}
-      <div className="p-3 border-t border-gray-200 dark:border-zinc-850">
-        <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-gray-50 dark:bg-zinc-950/60 border border-gray-200/40 dark:border-zinc-850/40">
-          <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0 shadow-sm">
-            <span className="text-white text-xs font-bold uppercase">
-              {user?.full_name?.charAt(0) ?? 'U'}
-            </span>
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-gray-700 dark:text-zinc-200 text-sm font-semibold truncate leading-tight">
-              {user?.full_name ?? 'Owner ISP'}
-            </p>
-            <p className="text-gray-400 dark:text-zinc-500 text-[10px] capitalize leading-none mt-1">
-              {user?.role === 'owner' ? 'Super Admin' : user?.role === 'cs_admin' ? 'CS Admin' : user?.role === 'technician' ? 'Teknisi' : 'Super Admin'}
-            </p>
-          </div>
-          <button
-            onClick={handleLogout}
-            className="text-gray-400 hover:text-red-500 dark:text-zinc-550 dark:hover:text-red-400 transition-colors p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10"
-            title="Keluar"
-          >
-            <LogOut className="w-4 h-4" />
-          </button>
-        </div>
-        <div className="text-[10px] text-center text-gray-400 dark:text-zinc-600 mt-2 font-medium">
-          &copy; 2025 ISP Center.
-        </div>
-      </div>
       </aside>
     </>
   )

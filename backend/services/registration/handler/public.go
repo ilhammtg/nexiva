@@ -845,3 +845,111 @@ func (h *CSAdminHandler) ProvisionMikrotik(c *fiber.Ctx) error {
 	}, msg)
 }
 
+// GetPublicInvoice handles GET /api/v1/public-invoices/:id
+func (h *PublicHandler) GetPublicInvoice(c *fiber.Ctx) error {
+	id := c.Params("id")
+	if id == "" {
+		return response.ErrorRaw(c, fiber.StatusBadRequest, "BAD_REQUEST", "ID tidak boleh kosong", nil)
+	}
+
+	inv, err := h.svc.GetInvoice(c.UserContext(), id)
+	if err != nil {
+		return response.ErrorRaw(c, fiber.StatusNotFound, "NOT_FOUND", "Tagihan tidak ditemukan", nil)
+	}
+
+	return response.Success(c, inv, "Tagihan berhasil diambil")
+}
+
+// ListInvoices handles GET /admin/invoices
+func (h *CSAdminHandler) ListInvoices(c *fiber.Ctx) error {
+	limitStr := c.Query("limit", "10")
+	pageStr := c.Query("page", "1")
+	
+	limit, _ := strconv.Atoi(limitStr)
+	page, _ := strconv.Atoi(pageStr)
+	
+	if limit <= 0 {
+		limit = 10
+	}
+	if page <= 0 {
+		page = 1
+	}
+	offset := (page - 1) * limit
+
+	filter := model.InvoiceFilter{
+		RegistrationID: c.Query("registration_id"),
+		Status:          c.Query("status"),
+		Query:           c.Query("search"),
+		Limit:           limit,
+		Offset:          offset,
+	}
+
+	invoices, total, err := h.svc.ListInvoices(c.UserContext(), filter)
+	if err != nil {
+		return response.Error(c, err)
+	}
+
+	totalPages := (total + limit - 1) / limit
+
+	return response.Paginated(c, invoices, &response.Meta{
+		Page:       page,
+		PerPage:    limit,
+		Total:      total,
+		TotalPages: totalPages,
+	})
+}
+
+// GetInvoice handles GET /admin/invoices/:id
+func (h *CSAdminHandler) GetInvoice(c *fiber.Ctx) error {
+	id := c.Params("id")
+	if id == "" {
+		return response.ErrorRaw(c, fiber.StatusBadRequest, "BAD_REQUEST", "ID tidak boleh kosong", nil)
+	}
+
+	inv, err := h.svc.GetInvoice(c.UserContext(), id)
+	if err != nil {
+		return response.ErrorRaw(c, fiber.StatusNotFound, "NOT_FOUND", "Tagihan tidak ditemukan", nil)
+	}
+
+	return response.Success(c, inv, "Tagihan berhasil diambil")
+}
+
+// ConfirmInvoicePayment handles POST /admin/invoices/:id/confirm
+func (h *CSAdminHandler) ConfirmInvoicePayment(c *fiber.Ctx) error {
+	id := c.Params("id")
+	if id == "" {
+		return response.ErrorRaw(c, fiber.StatusBadRequest, "BAD_REQUEST", "ID tidak boleh kosong", nil)
+	}
+
+	var req model.ConfirmPaymentRequest
+	if err := c.BodyParser(&req); err != nil {
+		return response.ErrorRaw(c, fiber.StatusBadRequest, "BAD_REQUEST", "Body data tidak valid", nil)
+	}
+
+	userID := c.Locals("user_id").(string)
+
+	err := h.svc.ConfirmInvoicePayment(c.UserContext(), id, userID, req)
+	if err != nil {
+		return response.Error(c, err)
+	}
+
+	return response.Success(c, nil, "Pembayaran tagihan berhasil dikonfirmasi")
+}
+
+// ResendInvoiceNotification handles POST /admin/invoices/:id/resend
+func (h *CSAdminHandler) ResendInvoiceNotification(c *fiber.Ctx) error {
+	id := c.Params("id")
+	if id == "" {
+		return response.ErrorRaw(c, fiber.StatusBadRequest, "BAD_REQUEST", "ID tidak boleh kosong", nil)
+	}
+
+	err := h.svc.ResendInvoiceNotification(c.UserContext(), id)
+	if err != nil {
+		return response.Error(c, err)
+	}
+
+	return response.Success(c, nil, "Notifikasi tagihan berhasil dikirim ulang")
+}
+
+
+

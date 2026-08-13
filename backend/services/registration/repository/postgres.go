@@ -716,5 +716,175 @@ func (r *postgresRegistrationRepository) DeleteODP(ctx context.Context, id strin
 	return err
 }
 
+func (r *postgresRegistrationRepository) CreateInvoice(ctx context.Context, inv *model.Invoice) (*model.Invoice, error) {
+	query := `
+		INSERT INTO invoices (
+			invoice_number, registration_id, period, amount, tax_amount, due_date, status
+		) VALUES (
+			$1, $2, $3, $4, $5, $6, $7
+		) RETURNING *`
+	var created model.Invoice
+	err := r.db.QueryRowxContext(ctx, query,
+		inv.InvoiceNumber, inv.RegistrationID, inv.Period, inv.Amount, inv.TaxAmount, inv.DueDate, inv.Status,
+	).StructScan(&created)
+	if err != nil {
+		return nil, fmt.Errorf("regRepo.CreateInvoice: %w", err)
+	}
+	return &created, nil
+}
+
+func (r *postgresRegistrationRepository) GetInvoiceByID(ctx context.Context, id string) (*model.Invoice, error) {
+	var inv model.Invoice
+	query := `
+		SELECT i.*, 
+		       r.customer_number AS customer_number,
+		       r.full_name AS customer_name, 
+		       r.phone AS phone,
+		       p.name AS package_name,
+		       p.speed_down_mbps AS package_speed
+		FROM invoices i
+		JOIN registrations r ON i.registration_id = r.id
+		JOIN packages p ON r.package_id = p.id
+		WHERE i.id = $1`
+	err := r.db.GetContext(ctx, &inv, query, id)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, svcerr.ErrNotFound
+		}
+		return nil, fmt.Errorf("regRepo.GetInvoiceByID: %w", err)
+	}
+	return &inv, nil
+}
+
+func (r *postgresRegistrationRepository) ListInvoices(ctx context.Context, filter model.InvoiceFilter) ([]model.Invoice, int, error) {
+	conditions := []string{"1=1"}
+	args := []interface{}{}
+	argIdx := 1
+
+	if filter.Status != "" {
+		conditions = append(conditions, fmt.Sprintf("i.status = $%d", argIdx))
+		args = append(args, filter.Status)
+		argIdx++
+	}
+
+	if filter.RegistrationID != "" {
+		conditions = append(conditions, fmt.Sprintf("i.registration_id = $%d", argIdx))
+		args = append(args, filter.RegistrationID)
+		argIdx++
+	}
+
+	if filter.Query != "" {
+		conditions = append(conditions, fmt.Sprintf("(i.invoice_number ILIKE $%d OR r.full_name ILIKE $%d OR r.customer_number ILIKE $%d)", argIdx, argIdx, argIdx))
+		args = append(args, "%"+filter.Query+"%")
+		argIdx++
+	}
+
+	whereClause := strings.Join(conditions, " AND ")
+
+	// Count query
+	countQuery := fmt.Sprintf(`
+		SELECT COUNT(*) 
+		FROM invoices i
+		JOIN registrations r ON i.registration_id = r.id
+		WHERE %s`, whereClause)
+	var total int
+	err := r.db.GetContext(ctx, &total, countQuery, args...)
+	if err != nil {
+		return nil, 0, fmt.Errorf("regRepo.ListInvoices: count: %w", err)
+	}
+
+	limit := 10
+	if filter.Limit > 0 {
+		limit = filter.Limit
+	}
+	offset := 0
+	if filter.Offset > 0 {
+		offset = filter.Offset
+	}
+
+	listQuery := fmt.Sprintf(`
+		SELECT i.*, 
+		       r.customer_number AS customer_number,
+		       r.full_name AS customer_name, 
+		       r.phone AS phone,
+		       p.name AS package_name,
+		       p.speed_down_mbps AS package_speed
+		FROM invoices i
+		JOIN registrations r ON i.registration_id = r.id
+		JOIN packages p ON r.package_id = p.id
+		WHERE %s
+		ORDER BY i.created_at DESC
+		LIMIT %d OFFSET %d`, whereClause, limit, offset)
+
+	var list []model.Invoice
+	err = r.db.SelectContext(ctx, &list, listQuery, args...)
+	if err != nil {
+		return nil, 0, fmt.Errorf("regRepo.ListInvoices: select: %w", err)
+	}
+
+	return list, total, nil
+}
+
+func (r *postgresRegistrationRepository) UpdateInvoiceStatus(ctx context.Context, id string, status model.InvoiceStatus, paymentBank *string, confirmedBy *string) error {
+	query := `
+		UPDATE invoices 
+		SET status = $1, 
+		    payment_bank = $2, 
+		    payment_confirmed_by = $3::uuid, 
+		    payment_confirmed_at = CASE WHEN $1::varchar = 'paid' THEN NOW() ELSE payment_confirmed_at END,
+		    paid_at = CASE WHEN $1::varchar = 'paid' THEN NOW() ELSE paid_at END,
+		    updated_at = NOW()
+		WHERE id = $4`
+	_, err := r.db.ExecContext(ctx, query, status, paymentBank, confirmedBy, id)
+	if err != nil {
+		return fmt.Errorf("regRepo.UpdateInvoiceStatus: %w", err)
+	}
+	return nil
+}
+
+func (r *postgresRegistrationRepository) GetActiveRegistrationsForBilling(ctx context.Context, day int) ([]model.Registration, error) {
+	var query string
+	var args []interface{}
+	if day >= 28 {
+		query = `
+			SELECT r.* 
+			FROM registrations r
+			WHERE r.status = 'active' 
+			  AND r.deleted_at IS NULL
+			  AND EXTRACT(DAY FROM r.activated_at) >= $1`
+		args = append(args, day)
+	} else {
+		query = `
+			SELECT r.* 
+			FROM registrations r
+			WHERE r.status = 'active' 
+			  AND r.deleted_at IS NULL
+			  AND EXTRACT(DAY FROM r.activated_at) = $1`
+		args = append(args, day)
+	}
+
+	var list []model.Registration
+	err := r.db.SelectContext(ctx, &list, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("regRepo.GetActiveRegistrationsForBilling: %w", err)
+	}
+	return list, nil
+}
+
+func (r *postgresRegistrationRepository) GetOverdueInvoices(ctx context.Context) ([]model.Invoice, error) {
+	query := `
+		SELECT i.* 
+		FROM invoices i
+		WHERE i.status = 'unpaid' 
+		  AND i.due_date < CURRENT_DATE`
+	var list []model.Invoice
+	err := r.db.SelectContext(ctx, &list, query)
+	if err != nil {
+		return nil, fmt.Errorf("regRepo.GetOverdueInvoices: %w", err)
+	}
+	return list, nil
+}
+
 // Keep import for pagination utils
 var _ = utils.PaginationParams{}
+

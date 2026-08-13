@@ -31,4 +31,11 @@ type NotificationService interface {
 
 	// SendProvisioningFailed notifies CS admin and owner of a provisioning failure.
 	SendProvisioningFailed(ctx context.Context, reg *model.Registration, errMsg string) error
+
+	// SendMonthlyInvoiceLink sends a monthly recurring invoice link to customer via WA
+	SendMonthlyInvoiceLink(ctx context.Context, reg *model.Registration, invoiceNumber string, amount int64, period string, invoiceURL string) error
+
+	// SendMonthlyInvoiceEmail sends a monthly recurring invoice email to customer
+	SendMonthlyInvoiceEmail(ctx context.Context, reg *model.Registration, invoiceNumber string, amount int64, period string, invoiceURL string) error
 }
+

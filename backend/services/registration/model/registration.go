@@ -18,6 +18,7 @@ const (
 	StatusProvisioning          Status = "provisioning"
 	StatusProvisioningFailed    Status = "provisioning_failed"
 	StatusActive                Status = "active"
+	StatusIsolir                Status = "isolir"
 )
 
 var validTransitions = map[Status][]Status{
@@ -30,6 +31,8 @@ var validTransitions = map[Status][]Status{
 	StatusPaymentConfirmed:      {StatusProvisioning},
 	StatusProvisioning:          {StatusActive, StatusProvisioningFailed},
 	StatusProvisioningFailed:    {StatusProvisioning}, // allow retry
+	StatusActive:                {StatusIsolir},
+	StatusIsolir:                {StatusActive},
 }
 
 // CanTransitionTo checks if transitioning to next is valid from the current status.

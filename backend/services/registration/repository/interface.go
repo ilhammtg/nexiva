@@ -116,4 +116,13 @@ type RegistrationRepository interface {
 	CreateODP(ctx context.Context, req *model.CreateODPRequest) (*model.ODP, error)
 	UpdateODP(ctx context.Context, id string, req *model.CreateODPRequest) (*model.ODP, error)
 	DeleteODP(ctx context.Context, id string) error
+
+	// Invoices management
+	CreateInvoice(ctx context.Context, inv *model.Invoice) (*model.Invoice, error)
+	ListInvoices(ctx context.Context, filter model.InvoiceFilter) ([]model.Invoice, int, error)
+	GetInvoiceByID(ctx context.Context, id string) (*model.Invoice, error)
+	UpdateInvoiceStatus(ctx context.Context, id string, status model.InvoiceStatus, paymentBank *string, confirmedBy *string) error
+	GetActiveRegistrationsForBilling(ctx context.Context, day int) ([]model.Registration, error)
+	GetOverdueInvoices(ctx context.Context) ([]model.Invoice, error)
 }
+

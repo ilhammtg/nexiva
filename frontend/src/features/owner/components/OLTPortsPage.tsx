@@ -10,7 +10,6 @@ import {
   Eye,
   RefreshCw,
   MapPin,
-  Info,
   X,
   Server,
   Cpu,
@@ -124,12 +123,7 @@ const getDefaultOLTPortByBrand = (brand: string) => {
   return 22
 }
 
-const getRegisterUrl = (serial: string, portId: string) => {
-  const params = new URLSearchParams()
-  if (serial) params.append('ont_serial_number', serial)
-  if (portId) params.append('olt_port_config_id', portId)
-  return `/register?${params.toString()}`
-}
+
 
 const findPortConfigIdByOnuIndex = (device: OLTDevice | null, onuIndex: string) => {
   if (!device || !onuIndex) return ''
@@ -391,7 +385,7 @@ function PortTooltip({ port, children }: { port: PortData; children: React.React
 }
 
 // Generate realistic ONT stats for monitoring (clean empty defaults if liveRx is unavailable)
-const getONTStats = (id: string, serial: string | null, packageId: string | null, liveRxData?: { oltRxPower?: number; onuRxPower?: number }) => {
+const getONTStats = (_id: string, serial: string | null, packageId: string | null, liveRxData?: { oltRxPower?: number; onuRxPower?: number }) => {
   const safeSerial = serial || ''
   if (!safeSerial) {
     return {
@@ -866,7 +860,7 @@ function OLTPortsContent() {
   // Master selection & Navigation Sub-Tabs (Full Width Scale Layout)
   const [selectedDeviceKey, setSelectedDeviceKey] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<SubTabType>('grid')
-  const [searchDeviceVal, setSearchDeviceVal] = useState('')
+
 
   // Filters for Customer DB & ONU Tabs
   const [searchOnuVal, setSearchOnuVal] = useState('')
