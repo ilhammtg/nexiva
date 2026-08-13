@@ -36,9 +36,9 @@ func (r *postgresRegistrationRepository) Create(ctx context.Context, reg *model.
 			reg_number, customer_id, full_name, nik, phone, email,
 			province, city, district, village, rt, rw, address_detail,
 			maps_lat, maps_lng, package_id, ktp_file_path, status, google_maps_link,
-			ont_serial_number, olt_port_config_id
+			ont_serial_number, olt_port_config_id, odp_info
 		) VALUES (
-			$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,'pending_review',$18,$19,$20
+			$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,'pending_review',$18,$19,$20,$21
 		) RETURNING *`
 
 	var created model.Registration
@@ -46,7 +46,7 @@ func (r *postgresRegistrationRepository) Create(ctx context.Context, reg *model.
 		reg.RegNumber, reg.CustomerID, reg.FullName, reg.NIK, reg.Phone, reg.Email,
 		reg.Province, reg.City, reg.District, reg.Village, reg.RT, reg.RW, reg.AddressDetail,
 		reg.MapsLat, reg.MapsLng, reg.PackageID, reg.KTPFilePath, reg.GoogleMapsLink,
-		reg.ONTSerialNumber, reg.OLTPortConfigID,
+		reg.ONTSerialNumber, reg.OLTPortConfigID, reg.ODPInfo,
 	).StructScan(&created)
 	if err != nil {
 		return nil, fmt.Errorf("regRepo.Create: insert: %w", err)

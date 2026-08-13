@@ -132,6 +132,56 @@ function parseGoogleMapsUrl(input: string): { lat: number; lng: number } | null 
   return null
 }
 
+const StreetMapPreview = () => (
+  <svg className="w-full h-full object-cover" viewBox="0 0 60 45" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect width="60" height="45" fill="#E8ECE9" />
+    <path d="M0 0C15 10 20 5 35 15C50 25 45 40 60 38V0H0Z" fill="#D2F1D2" />
+    <path d="M-5 45C10 38 25 35 32 25C40 12 45 5 65 -5" stroke="#AADAFF" strokeWidth="5" strokeLinecap="round" />
+    <line x1="30" y1="-5" x2="30" y2="50" stroke="#FFFFFF" strokeWidth="4" />
+    <line x1="30" y1="-5" x2="30" y2="50" stroke="#FFDE9E" strokeWidth="2.5" />
+    <line x1="-5" y1="20" x2="65" y2="20" stroke="#FFFFFF" strokeWidth="4" />
+    <line x1="-5" y1="20" x2="65" y2="20" stroke="#FFDE9E" strokeWidth="2.5" />
+    <circle cx="30" cy="20" r="3.5" fill="#EF4444" stroke="#FFFFFF" strokeWidth="1" />
+  </svg>
+)
+
+const SatelliteMapPreview = () => (
+  <svg className="w-full h-full object-cover" viewBox="0 0 60 45" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect width="60" height="45" fill="#132B14" />
+    <path d="M10 5C25 15 35 8 50 18C62 26 55 42 65 40V0H10Z" fill="#0A1C0B" />
+    <path d="M-5 45C10 38 25 35 32 25C40 12 45 5 65 -5" stroke="#003554" strokeWidth="5" strokeLinecap="round" />
+    <line x1="30" y1="-5" x2="30" y2="50" stroke="#E5E7EB" strokeWidth="1" strokeOpacity="0.7" />
+    <line x1="-5" y1="20" x2="65" y2="20" stroke="#E5E7EB" strokeWidth="1" strokeOpacity="0.7" />
+    <circle cx="30" cy="20" r="3.5" fill="#EF4444" stroke="#FFFFFF" strokeWidth="1" />
+  </svg>
+)
+
+const DarkMapPreview = () => (
+  <svg className="w-full h-full object-cover" viewBox="0 0 60 45" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect width="60" height="45" fill="#18181B" />
+    <path d="M-5 45C10 38 25 35 32 25C40 12 45 5 65 -5" stroke="#0C2340" strokeWidth="3" strokeLinecap="round" />
+    <line x1="30" y1="-5" x2="30" y2="50" stroke="#27272A" strokeWidth="2.5" />
+    <line x1="30" y1="-5" x2="30" y2="50" stroke="#3B82F6" strokeWidth="1" strokeOpacity="0.8" />
+    <line x1="-5" y1="20" x2="65" y2="20" stroke="#27272A" strokeWidth="2.5" />
+    <line x1="-5" y1="20" x2="65" y2="20" stroke="#3B82F6" strokeWidth="1" strokeOpacity="0.8" />
+    <circle cx="30" cy="20" r="3.5" fill="#60A5FA" stroke="#1D4ED8" strokeWidth="1" />
+  </svg>
+)
+
+const OSMMapPreview = () => (
+  <svg className="w-full h-full object-cover" viewBox="0 0 60 45" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect width="60" height="45" fill="#F4F3F0" />
+    <path d="M0 10C12 8 22 15 32 12C45 8 50 25 60 22V0H0Z" fill="#D8EBCE" />
+    <path d="M-5 45C10 38 25 35 32 25C40 12 45 5 65 -5" stroke="#AADAFF" strokeWidth="4" strokeLinecap="round" />
+    <line x1="30" y1="-5" x2="30" y2="50" stroke="#FFFFFF" strokeWidth="3" />
+    <line x1="30" y1="-5" x2="30" y2="50" stroke="#FBD07C" strokeWidth="1.5" />
+    <line x1="-5" y1="20" x2="65" y2="20" stroke="#FFFFFF" strokeWidth="3" />
+    <line x1="-5" y1="20" x2="65" y2="20" stroke="#FBD07C" strokeWidth="1.5" />
+    <circle cx="30" cy="20" r="3.5" fill="#EF4444" stroke="#FFFFFF" strokeWidth="1" />
+  </svg>
+)
+
+
 export default function RegisterPage() {
 
   const [step, setStep] = useState(() => {
@@ -463,6 +513,7 @@ export default function RegisterPage() {
   const markerRef = useRef<any>(null)
   const tileLayerRef = useRef<any>(null)
   const [mapLayer, setMapLayer] = useState<'google_street' | 'google_hybrid' | 'carto_dark' | 'osm'>('google_hybrid')
+  const [showLayerMenu, setShowLayerMenu] = useState(false)
 
   // Sync Map Tile Layer when changed
   useEffect(() => {
@@ -728,8 +779,13 @@ export default function RegisterPage() {
       mapInstance = L.map('register-map', {
         center: [initialLat, initialLng],
         zoom: mapsLat !== null ? 16 : 12,
-        layers: [tileLayer]
+        layers: [tileLayer],
+        zoomControl: false
       })
+      
+      // Add zoom control at bottom right
+      L.control.zoom({ position: 'bottomright' }).addTo(mapInstance)
+
       mapRef.current = mapInstance
       tileLayerRef.current = tileLayer
 
@@ -1675,47 +1731,95 @@ export default function RegisterPage() {
                       <div className="flex items-center justify-between gap-2 flex-wrap pb-1">
                         <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
                           <Map className="w-4 h-4 text-[#E41A26]" />
-                          Tandai Lokasi Rumah Anda (Peta Realtime Satelit) <span className="text-red-500">*</span>
+                          Tandai Lokasi Rumah Anda <span className="text-red-500">*</span>
                         </label>
-                        <div className="flex items-center gap-2 flex-wrap">
-                          {/* Map Layer Switcher Pills */}
-                          <div className="flex items-center bg-slate-100 dark:bg-slate-900 p-1 rounded-xl border border-slate-200 dark:border-slate-800 gap-1 text-[10px]">
-                            {(['google_street', 'google_hybrid', 'carto_dark', 'osm'] as const).map((layerKey) => (
-                              <button
-                                type="button"
-                                key={layerKey}
-                                onClick={() => setMapLayer(layerKey)}
-                                className={`px-2 py-1 rounded-lg font-medium transition-all ${
-                                  mapLayer === layerKey
-                                    ? 'bg-blue-600 text-white font-semibold shadow-xs'
-                                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                                }`}
-                              >
-                                {TILE_LAYERS[layerKey].name}
-                              </button>
-                            ))}
-                          </div>
-
-                          <button
-                            type="button"
-                            onClick={handleLocateUser}
-                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 dark:bg-red-950/20 text-[#E41A26] text-[10px] font-bold transition-all shadow-sm border border-red-100/50"
-                          >
-                            <Locate className="w-3.5 h-3.5" />
-                            Gunakan GPS Saya
-                          </button>
-                          <span className="font-mono text-[#E41A26] text-[10px] font-extrabold bg-red-50/40 dark:bg-red-950/20 px-2 py-1 rounded-lg">
-                            {mapsLat !== null && mapsLng !== null
-                              ? `${mapsLat.toFixed(6)}, ${mapsLng.toFixed(6)}`
-                              : 'Belum ditentukan'}
-                          </span>
-                        </div>
+                        <span className="font-mono text-[#E41A26] text-[10px] font-extrabold bg-red-50/40 dark:bg-red-950/20 px-2 py-1 rounded-lg">
+                          {mapsLat !== null && mapsLng !== null
+                            ? `${mapsLat.toFixed(6)}, ${mapsLng.toFixed(6)}`
+                            : 'Belum ditentukan'}
+                        </span>
                       </div>
 
-                      <div
-                        id="register-map"
-                        className="w-full h-[320px] md:h-[480px] rounded-2xl sm:rounded-3xl border border-slate-200/80 dark:border-slate-800 overflow-hidden z-10 shadow-lg"
-                      ></div>
+                      <div className="relative w-full h-[320px] md:h-[480px] rounded-2xl sm:rounded-3xl border border-slate-200/80 dark:border-slate-800 overflow-hidden shadow-lg z-10">
+                        {/* Map Canvas */}
+                        <div
+                          id="register-map"
+                          className="w-full h-full"
+                        ></div>
+
+                        {/* Floating Google Maps-like Layer Selector */}
+                        <div className="absolute left-4 bottom-5 z-[1000] flex flex-col items-start transition-all duration-300">
+                          {showLayerMenu ? (
+                            <div className="bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md p-3 rounded-2xl shadow-2xl border border-slate-200/80 dark:border-zinc-800/85 flex flex-col gap-2.5 transition-all animate-in fade-in slide-in-from-bottom-2 duration-200 text-slate-900 dark:text-zinc-100">
+                              <div className="flex items-center justify-between border-b border-slate-150 dark:border-zinc-800/60 pb-1.5 mb-1">
+                                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-zinc-500">Tampilan Peta</span>
+                                <button
+                                  type="button"
+                                  onClick={() => setShowLayerMenu(false)}
+                                  className="p-0.5 rounded-full hover:bg-slate-100 dark:hover:bg-zinc-800 text-slate-400 hover:text-slate-650 dark:hover:text-zinc-300 cursor-pointer"
+                                >
+                                  <X className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                              <div className="flex gap-2">
+                                {(['google_street', 'google_hybrid', 'carto_dark', 'osm'] as const).map((layerKey) => {
+                                  const isActive = mapLayer === layerKey
+
+                                  return (
+                                    <button
+                                      type="button"
+                                      key={layerKey}
+                                      onClick={() => setMapLayer(layerKey)}
+                                      className="flex flex-col items-center gap-1 group cursor-pointer focus:outline-none"
+                                    >
+                                      <div
+                                        className={`w-[60px] h-[45px] rounded-xl border-2 transition-all shadow-xs relative overflow-hidden flex items-center justify-center ${
+                                          isActive
+                                            ? 'border-blue-600 ring-2 ring-blue-600/25 scale-102 shadow-md'
+                                            : 'border-slate-200 dark:border-zinc-800 group-hover:border-slate-400 dark:group-hover:border-zinc-700 group-hover:scale-102'
+                                        }`}
+                                      >
+                                        {layerKey === 'google_street' && <StreetMapPreview />}
+                                        {layerKey === 'google_hybrid' && <SatelliteMapPreview />}
+                                        {layerKey === 'carto_dark' && <DarkMapPreview />}
+                                        {layerKey === 'osm' && <OSMMapPreview />}
+                                        
+                                        <div className="absolute inset-0 bg-black/10 group-hover:bg-black/0 transition-colors" />
+
+                                        <span className="absolute bottom-1 right-1 text-[9px] font-bold text-white bg-black/60 px-1 py-0.5 rounded-md backdrop-blur-xs scale-90">
+                                          {layerKey === 'google_street' ? 'Peta' : layerKey === 'google_hybrid' ? 'Satelit' : layerKey === 'carto_dark' ? 'Gelap' : 'OSM'}
+                                        </span>
+                                      </div>
+                                      <span className={`text-[10px] font-medium tracking-wide ${isActive ? 'text-blue-600 dark:text-blue-400 font-bold' : 'text-slate-600 dark:text-zinc-400'}`}>
+                                        {TILE_LAYERS[layerKey].name.split(' ')[0]}
+                                      </span>
+                                    </button>
+                                  )
+                                })}
+                              </div>
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => setShowLayerMenu(true)}
+                              className="w-10 h-10 rounded-full bg-white dark:bg-zinc-900 shadow-lg border border-slate-200 dark:border-zinc-800 flex items-center justify-center text-slate-700 dark:text-zinc-200 hover:bg-slate-50 dark:hover:bg-zinc-800 hover:scale-105 active:scale-95 transition-all cursor-pointer animate-in fade-in duration-200"
+                              title="Pilih Tampilan Peta"
+                            >
+                              <Layers className="w-5 h-5" />
+                            </button>
+                          )}
+                        </div>
+
+                        {/* Floating Google Maps-like GPS Button */}
+                        <button
+                          type="button"
+                          onClick={handleLocateUser}
+                          className="absolute right-3.5 bottom-28 z-[1000] w-10 h-10 rounded-full bg-white dark:bg-zinc-900 shadow-lg border border-slate-200 dark:border-zinc-800 flex items-center justify-center text-slate-700 dark:text-zinc-200 hover:bg-slate-50 dark:hover:bg-zinc-800 hover:scale-105 active:scale-95 transition-all cursor-pointer transition-all duration-300"
+                          title="Pusatkan Peta ke Lokasi Perangkat Saya"
+                        >
+                          <Locate className="w-5 h-5" />
+                        </button>
+                      </div>
 
                       {nearestOdp && distanceToOdp !== null && (
                         <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-2xl p-4 mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 transition-all duration-300">
