@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   Save, Loader2, AlertCircle, RefreshCw,
   Globe, Shield, Clock, Bell, PhoneCall, Paintbrush, Upload,
-  Sparkles, MapPin, FileText, Eye, EyeOff, Mail, Info, Undo2
+  Sparkles, MapPin, FileText, Eye, EyeOff, Mail, Info, Undo2, CreditCard, CalendarClock, Wallet
 } from 'lucide-react'
 import { ownerApi } from '../api/ownerApi'
 import { toast } from 'sonner'
@@ -219,7 +219,12 @@ export default function SettingsPage({ activeSection = 'registration' }: Setting
       'invoice_company_email',
       'invoice_tax_rate',
       'invoice_payment_instructions',
-      'wa_system_number'
+      'wa_system_number',
+      'billing_scheme',
+      'billing_due_day',
+      'billing_grace_period_days',
+      'billing_reminder_days_before',
+      'billing_prepaid_period_days',
     ]
   }
 
@@ -1510,10 +1515,156 @@ export default function SettingsPage({ activeSection = 'registration' }: Setting
                   />
                 </div>
               </div>
+          </div>
+
+          {/* ── Billing Scheme Section ── */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 py-6">
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-2">
+                <CreditCard className="w-4 h-4 text-violet-500" />
+                <h3 className="text-xs font-bold text-slate-800 dark:text-white uppercase tracking-wider">Skema Billing</h3>
+              </div>
+              <p className="text-xxs text-slate-450 dark:text-slate-500 leading-normal max-w-xs">
+                Pilih metode penagihan yang berlaku untuk seluruh pelanggan aktif. Perubahan ini bersifat universal.
+              </p>
+            </div>
+            <div className="lg:col-span-2 space-y-5">
+              {/* Toggle Postpaid / Prepaid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {[
+                  {
+                    id: 'postpaid',
+                    label: 'Pascabayar',
+                    sublabel: 'Pakai dulu, bayar nanti',
+                    desc: 'Invoice dikirim tiap tanggal tertentu. Lewat jatuh tempo + toleransi → isolir otomatis.',
+                    icon: CalendarClock,
+                    color: 'blue',
+                  },
+                  {
+                    id: 'prepaid',
+                    label: 'Prabayar',
+                    sublabel: 'Bayar dulu, baru pakai',
+                    desc: 'Pelanggan membeli masa aktif N hari. Mendekati expired → reminder WA. Expired → putus.',
+                    icon: Wallet,
+                    color: 'violet',
+                  },
+                ].map((opt) => {
+                  const Icon = opt.icon
+                  const isSelected = getActiveConfigValue('billing_scheme', 'postpaid') === opt.id
+                  const ring = opt.color === 'violet' ? 'border-violet-500 bg-violet-50/20 dark:bg-violet-950/10 ring-2 ring-violet-500/10' : 'border-blue-600 bg-blue-50/20 dark:bg-blue-950/10 ring-2 ring-blue-600/10'
+                  const iconBg = opt.color === 'violet' ? 'bg-violet-600 text-white' : 'bg-blue-600 text-white'
+                  const titleColor = opt.color === 'violet' ? 'text-violet-600 dark:text-violet-400' : 'text-blue-600 dark:text-blue-400'
+                  return (
+                    <button
+                      type="button"
+                      key={opt.id}
+                      onClick={() => handleChange('billing_scheme', opt.id)}
+                      className={`p-4 rounded-2xl border text-left flex flex-col gap-2.5 transition-all duration-200 ${
+                        isSelected
+                          ? ring
+                          : 'border-slate-200/70 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-white dark:bg-slate-900/30'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                          isSelected ? iconBg : 'bg-slate-100 dark:bg-slate-950 text-slate-400'
+                        }`}>
+                          <Icon className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <div className={`text-xs font-black ${isSelected ? titleColor : 'text-slate-700 dark:text-slate-300'}`}>{opt.label}</div>
+                          <div className="text-[10px] text-slate-400 dark:text-slate-500">{opt.sublabel}</div>
+                        </div>
+                      </div>
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-snug">{opt.desc}</p>
+                    </button>
+                  )
+                })}
+              </div>
+
+              {/* Conditional settings */}
+              <div className="bg-slate-50/70 dark:bg-slate-900/30 rounded-2xl border border-slate-100 dark:border-slate-800/60 p-5 space-y-4">
+                <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                  Konfigurasi {getActiveConfigValue('billing_scheme', 'postpaid') === 'prepaid' ? 'Prabayar' : 'Pascabayar'}
+                </p>
+
+                {getActiveConfigValue('billing_scheme', 'postpaid') === 'postpaid' && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="text-[11px] font-extrabold text-slate-700 dark:text-slate-300 block">Tanggal Penagihan per Bulan</label>
+                      <div className="relative">
+                        <input
+                          type="number"
+                          min="1" max="28"
+                          value={getActiveConfigValue('billing_due_day', '5')}
+                          onChange={(e) => handleChange('billing_due_day', e.target.value)}
+                          className="w-full pl-4 pr-16 py-2.5 rounded-xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-white focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/10 text-xs font-semibold"
+                        />
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-400">setiap bulan</span>
+                      </div>
+                      <p className="text-[10px] text-slate-400 italic">Invoice dibuat pada tanggal ini tiap bulan (1–28).</p>
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[11px] font-extrabold text-slate-700 dark:text-slate-300 block">Toleransi Grace Period (Hari)</label>
+                      <div className="relative">
+                        <input
+                          type="number"
+                          min="0" max="30"
+                          value={getActiveConfigValue('billing_grace_period_days', '7')}
+                          onChange={(e) => handleChange('billing_grace_period_days', e.target.value)}
+                          className="w-full pl-4 pr-10 py-2.5 rounded-xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-white focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/10 text-xs font-semibold"
+                        />
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-400">hari</span>
+                      </div>
+                      <p className="text-[10px] text-slate-400 italic">Pelanggan diisolir jika belum bayar setelah jatuh tempo + toleransi ini.</p>
+                    </div>
+                  </div>
+                )}
+
+                {getActiveConfigValue('billing_scheme', 'postpaid') === 'prepaid' && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="text-[11px] font-extrabold text-slate-700 dark:text-slate-300 block">Durasi Masa Aktif per Pembayaran</label>
+                      <div className="relative">
+                        <input
+                          type="number"
+                          min="1"
+                          value={getActiveConfigValue('billing_prepaid_period_days', '30')}
+                          onChange={(e) => handleChange('billing_prepaid_period_days', e.target.value)}
+                          className="w-full pl-4 pr-10 py-2.5 rounded-xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-white focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/10 text-xs font-semibold"
+                        />
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-400">hari</span>
+                      </div>
+                      <p className="text-[10px] text-slate-400 italic">Jumlah hari masa aktif yang ditambahkan setiap kali pelanggan melakukan pembayaran.</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Shared: reminder days */}
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-extrabold text-slate-700 dark:text-slate-300 block">
+                    {getActiveConfigValue('billing_scheme', 'postpaid') === 'prepaid'
+                      ? 'Reminder WA Sebelum Expired (Hari)'
+                      : 'Reminder WA Sebelum Jatuh Tempo (Hari)'}
+                  </label>
+                  <div className="relative" style={{ maxWidth: '200px' }}>
+                    <input
+                      type="number"
+                      min="1" max="14"
+                      value={getActiveConfigValue('billing_reminder_days_before', '3')}
+                      onChange={(e) => handleChange('billing_reminder_days_before', e.target.value)}
+                      className="w-full pl-4 pr-10 py-2.5 rounded-xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-white focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/10 text-xs font-semibold"
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-400">hari</span>
+                  </div>
+                  <p className="text-[10px] text-slate-400 italic">Sistem mengirim WA pengingat H-N sebelum jatuh tempo atau masa aktif berakhir.</p>
+                </div>
+              </div>
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
+    </div>
 
       {/* Floating Unsaved Changes Notification Banner */}
       {isTabDirty && (

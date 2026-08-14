@@ -107,6 +107,7 @@ export interface Registration {
   GoogleMapsLink: string | null
   KTPFilePath: string | null
   ONTPhotoPath: string | null
+  ServiceExpiresAt: string | null
   CreatedAt: string
   UpdatedAt: string
 }

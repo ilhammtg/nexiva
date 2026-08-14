@@ -1423,50 +1423,92 @@ func (s *registrationService) ConfirmInvoicePayment(ctx context.Context, id stri
 		return err
 	}
 
-	// If customer was isolir, let's restore and reactivate PPPoE
+	// Read billing scheme
+	scheme, _ := s.repo.GetConfigValue(ctx, "billing_scheme")
+
+	if scheme == "prepaid" {
+		// ── Prepaid: extend service_expires_at ──────────────────────────────
+		periodDaysStr, _ := s.repo.GetConfigValue(ctx, "billing_prepaid_period_days")
+		periodDays, err2 := strconv.Atoi(periodDaysStr)
+		if err2 != nil || periodDays <= 0 {
+			periodDays = 30
+		}
+
+		// Extend from the later of (current expiry, now)
+		baseTime := time.Now()
+		if reg.ServiceExpiresAt != nil && reg.ServiceExpiresAt.After(baseTime) {
+			baseTime = *reg.ServiceExpiresAt
+		}
+		newExpiry := baseTime.AddDate(0, 0, periodDays)
+
+		if err2 := s.repo.UpdateServiceExpiry(ctx, reg.ID, newExpiry); err2 != nil {
+			s.logger.Error("failed to update service expiry", zap.String("reg_id", reg.ID), zap.Error(err2))
+		} else {
+			s.logger.Info("prepaid service expiry extended",
+				zap.String("customer", reg.FullName),
+				zap.Time("new_expiry", newExpiry),
+			)
+		}
+
+		// If customer was isolir, reactivate
+		if reg.Status == model.StatusIsolir {
+			_ = s.repo.UpdateStatus(ctx, reg.ID, model.StatusActive, confirmedByID, "admin",
+				"Pembayaran prabayar dikonfirmasi, layanan diaktifkan kembali")
+			s.restoreMikrotikProfile(ctx, reg)
+		}
+
+		return nil
+	}
+
+	// ── Postpaid: restore PPPoE if customer was isolir ──────────────────────
 	if reg.Status == model.StatusIsolir {
 		err = s.repo.UpdateStatus(ctx, reg.ID, model.StatusActive, confirmedByID, "admin", "Tagihan lunas, internet diaktifkan kembali")
 		if err != nil {
 			s.logger.Error("failed to update registration status to active", zap.String("reg_id", reg.ID), zap.Error(err))
 		}
-
-		if reg.PPPoEUsername != nil && *reg.PPPoEUsername != "" {
-			pkg, err := s.repo.GetPackageByID(ctx, reg.PackageID)
-			if err == nil && pkg != nil {
-				mConfigs, err := s.repo.ListMikrotikConfigs(ctx)
-				if err == nil {
-					var activeConfig *model.MikrotikConfig
-					for _, m := range mConfigs {
-						if m.IsActive {
-							activeConfig = &m
-							break
-						}
-					}
-
-					if activeConfig != nil {
-						plainPassword, err := crypto.Decrypt(activeConfig.PasswordEnc, s.cfg.AppSecretKey)
-						if err == nil {
-							client := mikrotik.NewClient(activeConfig.Host, activeConfig.Port, activeConfig.Username, plainPassword)
-							// Restore normal Speed Profile on Mikrotik
-							_ = client.UpdateSecretProfile(*reg.PPPoEUsername, pkg.MikrotikProfile)
-							// Enable PPPoE Secret
-							_ = client.ToggleSecret(*reg.PPPoEUsername, false)
-							// Terminate connection to apply profile immediately
-							_ = client.DisconnectActiveConnection(*reg.PPPoEUsername)
-
-							s.logger.Info("payment confirmed: restored Mikrotik secret settings",
-								zap.String("username", *reg.PPPoEUsername),
-								zap.String("profile", pkg.MikrotikProfile),
-							)
-						}
-					}
-				}
-			}
-		}
+		s.restoreMikrotikProfile(ctx, reg)
 	}
 
 	return nil
 }
+
+// restoreMikrotikProfile re-enables the PPPoE secret and sets the correct speed profile.
+func (s *registrationService) restoreMikrotikProfile(ctx context.Context, reg *model.Registration) {
+	if reg.PPPoEUsername == nil || *reg.PPPoEUsername == "" {
+		return
+	}
+	pkg, err := s.repo.GetPackageByID(ctx, reg.PackageID)
+	if err != nil || pkg == nil {
+		return
+	}
+	mConfigs, err := s.repo.ListMikrotikConfigs(ctx)
+	if err != nil {
+		return
+	}
+	var activeConfig *model.MikrotikConfig
+	for _, m := range mConfigs {
+		if m.IsActive {
+			activeConfig = &m
+			break
+		}
+	}
+	if activeConfig == nil {
+		return
+	}
+	plainPassword, err := crypto.Decrypt(activeConfig.PasswordEnc, s.cfg.AppSecretKey)
+	if err != nil {
+		return
+	}
+	client := mikrotik.NewClient(activeConfig.Host, activeConfig.Port, activeConfig.Username, plainPassword)
+	_ = client.UpdateSecretProfile(*reg.PPPoEUsername, pkg.MikrotikProfile)
+	_ = client.ToggleSecret(*reg.PPPoEUsername, false)
+	_ = client.DisconnectActiveConnection(*reg.PPPoEUsername)
+	s.logger.Info("payment confirmed: restored Mikrotik secret settings",
+		zap.String("username", *reg.PPPoEUsername),
+		zap.String("profile", pkg.MikrotikProfile),
+	)
+}
+
 
 func (s *registrationService) ResendInvoiceNotification(ctx context.Context, id string) error {
 	inv, err := s.repo.GetInvoiceByID(ctx, id)

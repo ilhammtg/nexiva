@@ -845,7 +845,15 @@ func (r *postgresRegistrationRepository) UpdateInvoiceStatus(ctx context.Context
 func (r *postgresRegistrationRepository) GetActiveRegistrationsForBilling(ctx context.Context, day int) ([]model.Registration, error) {
 	var query string
 	var args []interface{}
-	if day >= 28 {
+
+	if day == 0 {
+		// Return all active registrations (used by postpaid unified billing day)
+		query = `
+			SELECT r.* 
+			FROM registrations r
+			WHERE r.status = 'active' 
+			  AND r.deleted_at IS NULL`
+	} else if day >= 28 {
 		query = `
 			SELECT r.* 
 			FROM registrations r
@@ -871,14 +879,14 @@ func (r *postgresRegistrationRepository) GetActiveRegistrationsForBilling(ctx co
 	return list, nil
 }
 
-func (r *postgresRegistrationRepository) GetOverdueInvoices(ctx context.Context) ([]model.Invoice, error) {
+func (r *postgresRegistrationRepository) GetOverdueInvoices(ctx context.Context, cutoffDate time.Time) ([]model.Invoice, error) {
 	query := `
 		SELECT i.* 
 		FROM invoices i
 		WHERE i.status = 'unpaid' 
-		  AND i.due_date < CURRENT_DATE`
+		  AND i.due_date <= $1`
 	var list []model.Invoice
-	err := r.db.SelectContext(ctx, &list, query)
+	err := r.db.SelectContext(ctx, &list, query, cutoffDate)
 	if err != nil {
 		return nil, fmt.Errorf("regRepo.GetOverdueInvoices: %w", err)
 	}
@@ -888,3 +896,55 @@ func (r *postgresRegistrationRepository) GetOverdueInvoices(ctx context.Context)
 // Keep import for pagination utils
 var _ = utils.PaginationParams{}
 
+// GetConfigValue reads a single config value by key from app_configs.
+func (r *postgresRegistrationRepository) GetConfigValue(ctx context.Context, key string) (string, error) {
+	var val string
+	err := r.db.GetContext(ctx, &val, `SELECT value FROM app_configs WHERE key = $1`, key)
+	if err != nil {
+		return "", fmt.Errorf("regRepo.GetConfigValue(%s): %w", key, err)
+	}
+	return val, nil
+}
+
+// UpdateServiceExpiry sets service_expires_at for a prepaid customer.
+func (r *postgresRegistrationRepository) UpdateServiceExpiry(ctx context.Context, regID string, expiresAt time.Time) error {
+	_, err := r.db.ExecContext(ctx,
+		`UPDATE registrations SET service_expires_at = $1, updated_at = NOW() WHERE id = $2`,
+		expiresAt, regID,
+	)
+	if err != nil {
+		return fmt.Errorf("regRepo.UpdateServiceExpiry: %w", err)
+	}
+	return nil
+}
+
+// GetExpiredPrepaidRegistrations returns active registrations whose service_expires_at has passed.
+func (r *postgresRegistrationRepository) GetExpiredPrepaidRegistrations(ctx context.Context) ([]model.Registration, error) {
+	query := `
+		SELECT * FROM registrations
+		WHERE status = 'active'
+		  AND deleted_at IS NULL
+		  AND service_expires_at IS NOT NULL
+		  AND service_expires_at <= NOW()`
+	var list []model.Registration
+	if err := r.db.SelectContext(ctx, &list, query); err != nil {
+		return nil, fmt.Errorf("regRepo.GetExpiredPrepaidRegistrations: %w", err)
+	}
+	return list, nil
+}
+
+// GetExpiringPrepaidRegistrations returns active registrations expiring within daysAhead days.
+func (r *postgresRegistrationRepository) GetExpiringPrepaidRegistrations(ctx context.Context, daysAhead int) ([]model.Registration, error) {
+	query := `
+		SELECT * FROM registrations
+		WHERE status = 'active'
+		  AND deleted_at IS NULL
+		  AND service_expires_at IS NOT NULL
+		  AND service_expires_at > NOW()
+		  AND service_expires_at <= NOW() + ($1 || ' days')::INTERVAL`
+	var list []model.Registration
+	if err := r.db.SelectContext(ctx, &list, query, daysAhead); err != nil {
+		return nil, fmt.Errorf("regRepo.GetExpiringPrepaidRegistrations: %w", err)
+	}
+	return list, nil
+}

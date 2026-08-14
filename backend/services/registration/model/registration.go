@@ -115,6 +115,9 @@ type Registration struct {
 	ODPInfo         *string `db:"odp_info"`
 	GoogleMapsLink  *string `db:"google_maps_link"`
 
+	// Prepaid billing
+	ServiceExpiresAt *time.Time `db:"service_expires_at"`
+
 	CreatedAt time.Time  `db:"created_at"`
 	UpdatedAt time.Time  `db:"updated_at"`
 	DeletedAt *time.Time `db:"deleted_at"`

@@ -921,4 +921,10 @@ func (s *notificationService) SendMonthlyInvoiceEmail(ctx context.Context, reg *
 	return nil
 }
 
-
+// SendCustomMessage sends a free-form WhatsApp message to any phone number.
+func (s *notificationService) SendCustomMessage(ctx context.Context, phone string, message string) error {
+	if err := s.send(ctx, phone, message); err != nil {
+		return fmt.Errorf("notifSvc.SendCustomMessage: %w", err)
+	}
+	return nil
+}

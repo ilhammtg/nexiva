@@ -37,5 +37,8 @@ type NotificationService interface {
 
 	// SendMonthlyInvoiceEmail sends a monthly recurring invoice email to customer
 	SendMonthlyInvoiceEmail(ctx context.Context, reg *model.Registration, invoiceNumber string, amount int64, period string, invoiceURL string) error
+
+	// SendCustomMessage sends a free-form WhatsApp message to the given phone number.
+	SendCustomMessage(ctx context.Context, phone string, message string) error
 }
 

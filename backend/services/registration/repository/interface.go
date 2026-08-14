@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"time"
 
 	"isp-platform/registration/internal/utils"
 	"isp-platform/registration/services/registration/model"
@@ -123,6 +124,17 @@ type RegistrationRepository interface {
 	GetInvoiceByID(ctx context.Context, id string) (*model.Invoice, error)
 	UpdateInvoiceStatus(ctx context.Context, id string, status model.InvoiceStatus, paymentBank *string, confirmedBy *string) error
 	GetActiveRegistrationsForBilling(ctx context.Context, day int) ([]model.Registration, error)
-	GetOverdueInvoices(ctx context.Context) ([]model.Invoice, error)
+	// GetOverdueInvoices returns unpaid invoices whose due_date is on or before cutoffDate.
+	GetOverdueInvoices(ctx context.Context, cutoffDate time.Time) ([]model.Invoice, error)
+
+	// Billing scheme helpers
+	// GetConfigValue reads a single config value by key from app_configs.
+	GetConfigValue(ctx context.Context, key string) (string, error)
+	// UpdateServiceExpiry sets the service_expires_at timestamp for a prepaid customer.
+	UpdateServiceExpiry(ctx context.Context, regID string, expiresAt time.Time) error
+	// GetExpiredPrepaidRegistrations returns active registrations whose service_expires_at <= now.
+	GetExpiredPrepaidRegistrations(ctx context.Context) ([]model.Registration, error)
+	// GetExpiringPrepaidRegistrations returns active registrations expiring within daysAhead days.
+	GetExpiringPrepaidRegistrations(ctx context.Context, daysAhead int) ([]model.Registration, error)
 }
 

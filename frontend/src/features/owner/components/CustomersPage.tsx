@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useQuery, useMutation } from '@tanstack/react-query'
-import { Search, ChevronLeft, ChevronRight, Eye, Calendar, MapPin, Phone, Trash2, RefreshCw } from 'lucide-react'
+import { Search, ChevronLeft, ChevronRight, Eye, Calendar, MapPin, Phone, Trash2, RefreshCw, Clock } from 'lucide-react'
 import { ownerApi } from '../api/ownerApi'
 import { csApi } from '@/features/cs/api/csApi'
 import { LoadingSpinner, EmptyState } from '@/components/ui'
@@ -88,6 +88,42 @@ export default function CustomersPage({ role = 'owner' }: CustomersPageProps) {
   const customers = data?.data ?? []
   const meta = data?.meta
 
+  // Helper: colored expiry badge for prepaid customers
+  const getExpiryBadge = (expiresAt: string | null) => {
+    if (!expiresAt) return null
+    const exp = new Date(expiresAt)
+    const now = new Date()
+    const diffDays = Math.ceil((exp.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+    if (diffDays <= 0) {
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 border border-red-200/50 dark:border-red-900/30">
+          <Clock className="w-3 h-3" />
+          Expired
+        </span>
+      )
+    }
+    if (diffDays <= 7) {
+      return (
+        <div>
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-400 border border-amber-200/50 dark:border-amber-900/30">
+            <Clock className="w-3 h-3" />
+            {diffDays}h lagi
+          </span>
+          <div className="text-[9px] text-gray-400 mt-0.5">{exp.toLocaleDateString('id-ID', { day:'2-digit', month:'short', year:'numeric' })}</div>
+        </div>
+      )
+    }
+    return (
+      <div>
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-400 border border-emerald-200/50 dark:border-emerald-900/30">
+          <Clock className="w-3 h-3" />
+          {diffDays}h lagi
+        </span>
+        <div className="text-[9px] text-gray-400 mt-0.5">{exp.toLocaleDateString('id-ID', { day:'2-digit', month:'short', year:'numeric' })}</div>
+      </div>
+    )
+  }
+
   return (
     <div className="p-4 sm:p-6 space-y-4 w-full">
       {/* Table Card */}
@@ -132,6 +168,7 @@ export default function CustomersPage({ role = 'owner' }: CustomersPageProps) {
                   <th className="px-5 py-3 text-left">Alamat / Wilayah</th>
                   <th className="px-5 py-3 text-left">Status Koneksi</th>
                   <th className="px-5 py-3 text-left">Tanggal Aktif</th>
+                  <th className="px-5 py-3 text-left">Masa Aktif</th>
                   <th className="px-5 py-3 text-center">Aksi</th>
                 </tr>
               </thead>
@@ -220,6 +257,14 @@ export default function CustomersPage({ role = 'owner' }: CustomersPageProps) {
                           <Calendar className="w-3.5 h-3.5 text-gray-400" />
                           <span>{cust.ActivatedAt ? formatDateTime(cust.ActivatedAt) : '-'}</span>
                         </div>
+                      </td>
+
+                      {/* Masa Aktif (prepaid) */}
+                      <td className="px-5 py-4">
+                        {cust.ServiceExpiresAt
+                          ? getExpiryBadge(cust.ServiceExpiresAt)
+                          : <span className="text-gray-400 dark:text-zinc-500 text-[10px]">—</span>
+                        }
                       </td>
 
                       {/* Actions */}
